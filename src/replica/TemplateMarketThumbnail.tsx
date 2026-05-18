@@ -5,13 +5,25 @@ function gridSpan(w: CanvasWidget): number {
   return w.colSpan === 2 ? 4 : 2;
 }
 
-export function TemplateMarketThumbnail({ preset }: { preset: TemplatePreset }) {
+export function TemplateMarketThumbnail({
+  preset,
+  size = "default",
+}: {
+  preset: TemplatePreset;
+  size?: "default" | "compact" | "hero";
+}) {
   const accent = preset.accent;
+  const compact = size === "compact";
+  const hero = size === "hero";
 
   return (
-    <div className="mt-2 flex h-16 flex-col overflow-hidden rounded-md border border-black/[0.08] bg-gradient-to-br from-white to-neutral-100 shadow-inner">
+    <div
+      className={`flex w-full flex-col overflow-hidden rounded-md border border-black/[0.08] bg-gradient-to-br from-white to-neutral-100 shadow-inner ${
+        hero ? "h-full min-h-[140px]" : compact ? "mt-0 h-12" : "mt-2 h-16"
+      }`}
+    >
       <div className="h-0.5 w-full shrink-0" style={{ backgroundColor: accent }} aria-hidden />
-      <div className="min-h-0 flex-1 p-1">
+      <div className={`min-h-0 flex-1 ${hero ? "p-2" : compact ? "p-0.5" : "p-1"}`}>
         <div
           className="grid h-full w-full grid-cols-8 gap-0.5"
           style={{

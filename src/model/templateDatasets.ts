@@ -183,22 +183,35 @@ export function dataMixHash(s: string, seed: number): number {
   return u32(h);
 }
 
-/** 主指标水波等用的 0–97 区间百分比感数值，随 `dataSeed` 刷新变化 */
+/** 主指标水波等用的百分比感数值，随 `dataSeed` 刷新变化（全局） */
 export function measureValue(key: string, dataSeed = 0): number {
   const h = dataMixHash(key, dataSeed);
   return 12 + (h % 86);
 }
 
-/** KPI 三格预览：在原始文案基础上按模板与种子做小幅数值抖动 */
+/** 按图表隔离：混入 widgetId 与筛选条件，区间约 15–94 */
+export function measureValueForWidget(
+  measureKey: string,
+  dataSeed: number,
+  widgetId: string,
+  filterMix = "",
+): number {
+  const h = dataMixHash(`${widgetId}|${measureKey}|${filterMix}`, dataSeed);
+  return 15 + (h % 80);
+}
+
+/** KPI 三格预览：在原始文案基础上按模板与种子做小幅数值抖动；`widgetId` 用于多块图差异化 */
 export function seededKpiPreviewRows(
   rows: { label: string; value: string }[],
   templateId: string,
   seed: number,
+  widgetId = "",
+  filterMix = "",
 ): { label: string; value: string }[] {
   return rows.map((row, i) => {
     const raw = row.value.trim();
-    const h = dataMixHash(`${templateId}:${row.label}`, seed + i * 31);
-    const jitter = (h % 19) - 9;
+    const h = dataMixHash(`${templateId}:${row.label}:${widgetId}|${filterMix}`, seed + i * 31);
+    const jitter = (h % 37) - 18;
 
     if (/前\s*\d+%|后\s*\d+%|区间/i.test(raw)) return row;
     /** 纯数值型展示才抖动，避免「前 15%」等被误匹配到内部数字 */
@@ -209,7 +222,7 @@ export function seededKpiPreviewRows(
     const n = parseFloat(numMatch[0]);
     if (!Number.isFinite(n)) return row;
 
-    const scale = Math.abs(n) < 25 ? 0.4 : Math.abs(n) * 0.015;
+    const scale = Math.abs(n) < 25 ? 0.85 : Math.abs(n) * 0.045;
     const next = Math.max(0, n + jitter * scale);
 
     if (/%/.test(raw)) {
@@ -248,13 +261,19 @@ function jiggleMetricToken(s: string, seed: number, salt: number): string {
 }
 
 /** 策略客群表：期初/期末/变动/变动率在刷新时整体抖动一版 */
-export function seededCohortRows(rows: CohortTrackingMockRow[], seed: number): CohortTrackingMockRow[] {
+export function seededCohortRows(
+  rows: CohortTrackingMockRow[],
+  seed: number,
+  widgetId = "",
+  filterMix = "",
+): CohortTrackingMockRow[] {
   if (!rows.length) return rows;
+  const mixKey = `${widgetId}|${filterMix}`;
   return rows.map((r, i) => ({
     ...r,
-    open: jiggleMetricToken(r.open, seed, i * 5 + 1),
-    close: jiggleMetricToken(r.close, seed, i * 5 + 2),
-    delta: jiggleMetricToken(r.delta, seed, i * 5 + 3),
-    rate: jiggleMetricToken(r.rate, seed, i * 5 + 4),
+    open: jiggleMetricToken(r.open, seed + dataMixHash(mixKey, i), i * 5 + 1),
+    close: jiggleMetricToken(r.close, seed + dataMixHash(mixKey, i), i * 5 + 2),
+    delta: jiggleMetricToken(r.delta, seed + dataMixHash(mixKey, i), i * 5 + 3),
+    rate: jiggleMetricToken(r.rate, seed + dataMixHash(mixKey, i), i * 5 + 4),
   }));
 }

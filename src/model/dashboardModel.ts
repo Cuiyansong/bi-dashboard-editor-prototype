@@ -12,7 +12,16 @@ export interface CanvasWidget {
   /** grid placement — simple flow for prototype */
   colSpan?: number;
   /** High-fidelity replica layouts（驾驶舱模板演示用） */
-  replicaLayout?: "irisKpis" | "irisLiquid" | "irisCrossTable" | "strategyCohortTable";
+  replicaLayout?:
+    | "irisKpis"
+    | "irisLiquid"
+    | "irisCrossTable"
+    | "strategyCohortTable"
+    | "metricBreakdownTree"
+    | "orgProgressBoard"
+    | "customerTagTable"
+    | "compoundQuery"
+    | "insuranceCockpitBoard";
 }
 
 export interface TemplatePreset {
@@ -26,8 +35,35 @@ export interface TemplatePreset {
   accent: string;
 }
 
-/** 默认第一项：客户经营分析 */
+/** 顺序：驾驶舱、通报与考核、客户经营分析、策略编辑 */
 export const TEMPLATES: TemplatePreset[] = [
+  {
+    id: "cockpit",
+    name: "驾驶舱看板",
+    pageTitle: "银行驾驶舱",
+    description: "银行业务总览、KPI 达成、分公司排行与核心指标监控（含指标拆解）",
+    dashboardTabs: ["首页", "项目进度", "核心信息事项"],
+    accent: "#1677ff",
+    widgets: [
+      { id: "w1", type: "kpi", title: "银行驾驶舱总览", colSpan: 2, replicaLayout: "insuranceCockpitBoard" },
+      { id: "w2", type: "kpi", title: "指标拆解树", colSpan: 2, replicaLayout: "metricBreakdownTree", libraryLabel: "指标拆解树" },
+    ],
+  },
+  {
+    id: "report-kpi",
+    name: "通报与考核",
+    pageTitle: "通报与考核",
+    description: "通报、KPI 考核与排名视图占位",
+    dashboardTabs: ["通报", "KPI 考核", "排名"],
+    accent: "#fa8c16",
+    widgets: [
+      { id: "w1", type: "bar", title: "部门排名", colSpan: 2 },
+      { id: "w2", type: "liquid", title: "达成率", colSpan: 1 },
+      { id: "w3", type: "kpi", title: "考核得分", colSpan: 1 },
+      { id: "w4", type: "table", title: "通报明细", colSpan: 2 },
+      { id: "w5", type: "line", title: "周期趋势", colSpan: 2 },
+    ],
+  },
   {
     id: "customer-biz",
     name: "客户经营分析",
@@ -41,20 +77,6 @@ export const TEMPLATES: TemplatePreset[] = [
       { id: "w3", type: "bar", title: "区域收入对比", colSpan: 2 },
       { id: "w4", type: "line", title: "产品渗透趋势", colSpan: 2 },
       { id: "w5", type: "table", title: "客户分层明细", colSpan: 2 },
-    ],
-  },
-  {
-    id: "cockpit",
-    name: "驾驶舱看板",
-    pageTitle: "驾驶舱看板",
-    description: "总览、风险预警与资源达成（含 Iris 高保真演示块）",
-    dashboardTabs: ["核心业绩指标", "项目进度", "核心信息事项"],
-    accent: "#1677ff",
-    widgets: [
-      { id: "w1", type: "kpi", title: "Iris 指标", colSpan: 1, replicaLayout: "irisKpis" },
-      { id: "w2", type: "liquid", title: "水波图-Iris数据集", colSpan: 1, replicaLayout: "irisLiquid" },
-      { id: "w3", type: "line", title: "核心指标趋势", colSpan: 2 },
-      { id: "w4", type: "table", title: "风险预警明细", colSpan: 2, replicaLayout: "irisCrossTable" },
     ],
   },
   {
@@ -79,19 +101,13 @@ export const TEMPLATES: TemplatePreset[] = [
     ],
   },
   {
-    id: "report-kpi",
-    name: "通报与考核",
-    pageTitle: "通报与考核",
-    description: "通报、KPI 考核与排名视图占位",
-    dashboardTabs: ["通报", "KPI 考核", "排名"],
-    accent: "#fa8c16",
-    widgets: [
-      { id: "w1", type: "bar", title: "部门排名", colSpan: 2 },
-      { id: "w2", type: "liquid", title: "达成率", colSpan: 1 },
-      { id: "w3", type: "kpi", title: "考核得分", colSpan: 1 },
-      { id: "w4", type: "table", title: "通报明细", colSpan: 2 },
-      { id: "w5", type: "line", title: "周期趋势", colSpan: 2 },
-    ],
+    id: "blank",
+    name: "空模板",
+    pageTitle: "未命名看板",
+    description: "空白画布，从左侧拖入图表开始搭建",
+    dashboardTabs: ["看板 1"],
+    accent: "#94a3b8",
+    widgets: [],
   },
 ];
 

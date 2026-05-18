@@ -1,22 +1,65 @@
 import { figmaAssets } from "./figmaAssets";
+import type { EditorUiMode } from "./editorUiMode";
 
 const a = figmaAssets.header;
 
-export function ReplicaBiHeader() {
+function EditorModeSwitch({ mode, onChange }: { mode: EditorUiMode; onChange: (m: EditorUiMode) => void }) {
+  const item = (value: EditorUiMode, label: string) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={mode === value}
+      onClick={() => onChange(value)}
+      className={`rounded-[5px] px-2.5 py-1 font-['Inter',sans-serif] text-xs transition ${
+        mode === value ? "bg-white font-medium text-primary shadow-sm" : "text-[rgba(0,0,0,0.55)] hover:text-figma-text"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="界面模式"
+      className="flex shrink-0 items-center rounded-md border border-figma-line bg-neutral-100/90 p-0.5"
+    >
+      {item("simple", "简单")}
+      {item("complex", "复杂")}
+    </div>
+  );
+}
+
+export function ReplicaBiHeader({
+  uiMode,
+  onUiModeChange,
+  onBackToHome,
+}: {
+  uiMode: EditorUiMode;
+  onUiModeChange: (mode: EditorUiMode) => void;
+  onBackToHome?: () => void;
+}) {
+  const simple = uiMode === "simple";
+
   return (
     <header
       className="flex h-[56px] shrink-0 items-stretch border-b border-figma-line bg-white px-4"
       data-figma-node="2:7282"
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
+        {onBackToHome ? (
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="shrink-0 rounded border border-figma-line px-2.5 py-1 font-['Inter',sans-serif] text-xs text-figma-sub hover:border-primary hover:text-primary"
+          >
+            ← 返回首页
+          </button>
+        ) : null}
         <img src={a.v} alt="" className="h-6 w-6 shrink-0 object-contain" />
         <div className="min-w-0">
-          <div className="truncate font-['Inter',sans-serif] text-sm font-medium leading-tight text-figma-text">
-            创建模板功能
-          </div>
-          <div className="truncate font-['Inter',sans-serif] text-[11px] leading-tight text-figma-sub">
-            仅在当前页面有效
-          </div>
+          <div className="truncate font-['Inter',sans-serif] text-sm font-medium leading-tight text-figma-text">创建模板功能</div>
+          <div className="truncate font-['Inter',sans-serif] text-[11px] leading-tight text-figma-sub">仅在当前页面有效</div>
         </div>
         <span className="mx-1 h-4 w-px shrink-0 bg-figma-line" />
         <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-black/[0.04]">
@@ -26,14 +69,13 @@ export function ReplicaBiHeader() {
           <img src={a.v2} alt="" className="h-4 w-4 object-contain" />
         </button>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <img src={a.v5} alt="" className="h-4 w-4 shrink-0 object-contain opacity-70" />
-        <button type="button" className="rounded px-2 py-1 font-['Inter',sans-serif] text-xs text-[rgba(0,0,0,0.65)] hover:bg-black/[0.04]">
-          替换数据集
-        </button>
-        <button type="button" className="rounded px-2 py-1 font-['Inter',sans-serif] text-xs text-[rgba(0,0,0,0.65)] hover:bg-black/[0.04]">
-          页面设置
-        </button>
+      <div className="flex shrink-0 items-center gap-2">
+        <EditorModeSwitch mode={uiMode} onChange={onUiModeChange} />
+        {!simple ? (
+          <button type="button" className="rounded px-2 py-1 font-['Inter',sans-serif] text-xs text-[rgba(0,0,0,0.65)] hover:bg-black/[0.04]">
+            页面设置
+          </button>
+        ) : null}
         <button
           type="button"
           className="rounded border border-primary bg-white px-3 py-1 font-['Inter',sans-serif] text-xs font-medium text-primary hover:bg-figma-azure-8"

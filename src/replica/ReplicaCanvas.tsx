@@ -1,40 +1,49 @@
 import { figmaAssets } from "./figmaAssets";
-import { useMemo, type Ref } from "react";
+import { useCallback, useState, type Ref } from "react";
 import { CanvasWidget, MeasureKey, TemplatePreset } from "../model/dashboardModel";
 import type { TemplateDatasetDef } from "../model/templateDatasets";
-import { measureValue, seededCohortRows, seededKpiPreviewRows } from "../model/templateDatasets";
+import { measureValueForWidget, seededCohortRows, seededKpiPreviewRows } from "../model/templateDatasets";
 import { cardAccentForIndex } from "./chartAccents";
 import type { FieldSlotBindings } from "./ReplicaRightPanel";
 import { WidgetBody } from "./canvasWidgets";
+import { filterMixFromState, type CustomerFilterState } from "../model/customerFilters";
 import { TemplateFilterBar } from "./TemplateFilterBar";
+import { WidgetCanvasMoreMenu } from "./WidgetCanvasMoreMenu";
+import { ChartFilterToolbar } from "./ChartFilterToolbar";
 
 const c = figmaAssets.canvas;
 
 export type ReplicaCanvasProps = {
   preset: TemplatePreset;
   dataset: TemplateDatasetDef;
+  /** 画布主标题（与当前 Tab 名称分开配置、分开渲染，便于单独改文案或样式） */
   pageTitle: string;
-  /** 当前 Tab 副标题（如 Tab 名称），与 pageTitle 组合展示 */
+  /** 当前 Tab 名称，显示在主标题右侧，字号略小 */
   dashTabLabel?: string;
   activeDashTab: number;
   onDashTab: (i: number) => void;
   widgets: CanvasWidget[];
   selectedId: string | null;
   onSelectWidget: (id: string | null) => void;
+  /** 未单独配置时的默认主度量（新拖入块初始值） */
   primaryMeasure: MeasureKey;
+  /** 各图表独立主度量 */
+  widgetPrimaryMeasureById: Record<string, MeasureKey>;
+  /** 各图表独立假数据 seed（仅选中图点「更新」递增） */
+  widgetDataSeedById: Record<string, number>;
   /** 指针拖拽时画布高亮（与 HTML5 拖放无关） */
   dragOver: boolean;
   /** 用于指针投放命中检测（屏幕坐标） */
   dropZoneRef?: Ref<HTMLDivElement | null>;
-  /** 点击「更新」递增，驱动画布假数据刷新 */
-  dataSeed: number;
   /** 各画布组件的字段槽绑定（用于「无数据」态） */
   slotBindingsByWidget: Record<string, FieldSlotBindings>;
   /** 看板级筛选（标题下方独立卡片） */
-  templateId: string;
-  filterState: Record<string, string>;
-  onFilterChange: (filterId: string, value: string) => void;
+  filterState: CustomerFilterState;
+  onFilterChange: (filterId: keyof CustomerFilterState, value: string[]) => void;
   onFilterQuery: () => void;
+  onReorderWidgets?: (fromIndex: number, toIndex: number) => void;
+  /** 从卡片「更多」菜单删除组件 */
+  onDeleteWidget?: (widgetId: string) => void;
 };
 
 function cardMinHeight(w: CanvasWidget): number {
@@ -42,6 +51,11 @@ function cardMinHeight(w: CanvasWidget): number {
   if (w.replicaLayout === "irisCrossTable") return 260;
   if (w.replicaLayout === "irisLiquid") return 280;
   if (w.replicaLayout === "irisKpis") return 140;
+  if (w.replicaLayout === "metricBreakdownTree") return 340;
+  if (w.replicaLayout === "insuranceCockpitBoard") return 560;
+  if (w.replicaLayout === "compoundQuery") return 220;
+  if (w.replicaLayout === "orgProgressBoard") return 220;
+  if (w.replicaLayout === "customerTagTable") return 240;
   if (w.type === "liquid") return 220;
   if (w.type === "table") return 160;
   return 96;
@@ -58,28 +72,49 @@ export function ReplicaCanvas({
   selectedId,
   onSelectWidget,
   primaryMeasure,
+  widgetPrimaryMeasureById,
+  widgetDataSeedById,
   dragOver,
   dropZoneRef,
-  dataSeed,
   slotBindingsByWidget,
-  templateId,
   filterState,
   onFilterChange,
   onFilterQuery,
+  onReorderWidgets,
+  onDeleteWidget,
 }: ReplicaCanvasProps) {
-  const pct = Math.min(100, measureValue(primaryMeasure, dataSeed));
-  const measureLabel = dataset.measures.find((m) => m.key === primaryMeasure)?.label ?? dataset.measures[0]!.label;
-  const secondaryMeasureLabel = dataset.measures[1]?.label ?? dataset.measures[0]!.label;
   const dimensionLabels = dataset.dimensions.map((d) => d.label);
-  const kpiPreviewRows = useMemo(
-    () => seededKpiPreviewRows(dataset.kpiPreviewRows, preset.id, dataSeed),
-    [dataset.kpiPreviewRows, preset.id, dataSeed],
+  const [reorderHoverIndex, setReorderHoverIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((index: number) => (e: React.DragEvent) => {
+    e.stopPropagation();
+    e.dataTransfer.setData("text/bi-widget-idx", String(index));
+    e.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setReorderHoverIndex(null);
+  }, []);
+
+  const handleDragOverIndex = useCallback((index: number) => (e: React.DragEvent) => {
+    if (!onReorderWidgets) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setReorderHoverIndex(index);
+  }, [onReorderWidgets]);
+
+  const handleDropOnIndex = useCallback(
+    (toIndex: number) => (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const raw = e.dataTransfer.getData("text/bi-widget-idx");
+      const from = parseInt(raw, 10);
+      setReorderHoverIndex(null);
+      if (!onReorderWidgets || Number.isNaN(from)) return;
+      onReorderWidgets(from, toIndex);
+    },
+    [onReorderWidgets],
   );
-  const cohortRows = useMemo(() => {
-    const base = dataset.cohortTrackingRows;
-    if (!base?.length) return undefined;
-    return seededCohortRows(base, dataSeed);
-  }, [dataset.cohortTrackingRows, dataSeed]);
 
   return (
     <main
@@ -128,59 +163,116 @@ export function ReplicaCanvas({
 
         <div className="min-h-0 flex-1 overflow-auto px-6 pb-4 pt-5" onClick={() => onSelectWidget(null)}>
           <div className="pb-3 pl-1 pt-1">
-            <h1 className="font-['Inter',sans-serif] text-[28px] font-semibold leading-[39.2px] text-figma-text">
-              {pageTitle}
+            <h1 className="flex flex-wrap items-baseline gap-x-1.5 font-['Inter',sans-serif] leading-[39.2px] text-figma-text">
+              <span className="text-[28px] font-semibold tracking-tight" data-bi-replica-page-title>
+                {pageTitle}
+              </span>
               {dashTabLabel ? (
-                <span className="text-[20px] font-medium text-figma-sub"> · {dashTabLabel}</span>
+                <>
+                  <span className="text-[22px] font-semibold text-figma-sub/70" aria-hidden>
+                    ·
+                  </span>
+                  <span className="text-[20px] font-medium text-figma-sub" data-bi-replica-page-tab>
+                    {dashTabLabel}
+                  </span>
+                </>
               ) : null}
             </h1>
           </div>
 
-          <TemplateFilterBar
-            templateId={templateId}
-            values={filterState}
-            onChange={onFilterChange}
-            onQuery={onFilterQuery}
-          />
+          <TemplateFilterBar values={filterState} onChange={onFilterChange} onQuery={onFilterQuery} />
 
           <div
             className="relative mx-auto grid w-full max-w-[1247px] gap-3 px-1"
             style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+            data-canvas-grid
             onClick={(e) => e.stopPropagation()}
           >
-            {widgets.map((w, i) => (
-              <div
-                key={w.id}
-                role="button"
-                tabIndex={0}
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  onSelectWidget(w.id);
-                }}
-                onKeyDown={(ev) => {
-                  if (ev.key === "Enter" || ev.key === " ") {
-                    ev.preventDefault();
-                    onSelectWidget(w.id);
-                  }
-                }}
-                className={`rounded-lg border bg-white/90 text-left shadow-card backdrop-blur-sm outline-none ring-primary/30 transition focus-visible:ring-2 ${
-                  selectedId === w.id ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-neutral-300"
-                } ${w.colSpan === 2 ? "col-span-2" : ""}`}
-                style={{ minHeight: cardMinHeight(w) }}
-              >
-                <WidgetBody
-                  w={w}
-                  measureLabel={measureLabel}
-                  secondaryMeasureLabel={secondaryMeasureLabel}
-                  dimensionLabels={dimensionLabels}
-                  kpiPreviewRows={kpiPreviewRows}
-                  cohortRows={cohortRows}
-                  pct={pct}
-                  accent={cardAccentForIndex(i, activeDashTab)}
-                  slotBindings={slotBindingsByWidget[w.id] ?? {}}
-                />
+            {widgets.length === 0 ? (
+              <div className="col-span-2 flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-white/60 py-12 text-center">
+                <p className="text-sm font-medium text-figma-text">画布为空</p>
+                <p className="mt-2 max-w-sm text-xs text-figma-sub">从左侧「添加图表」打开组件库，拖入图表到此处即可开始搭建</p>
               </div>
-            ))}
+            ) : null}
+            {widgets.map((w, i) => {
+              const mk = widgetPrimaryMeasureById[w.id] ?? primaryMeasure;
+              const sd = widgetDataSeedById[w.id] ?? 0;
+              const filterMix = filterMixFromState(filterState);
+              const pct = Math.min(100, measureValueForWidget(mk, sd, w.id, filterMix));
+              const measureLabel = dataset.measures.find((m) => m.key === mk)?.label ?? dataset.measures[0]!.label;
+              const otherMeasure = dataset.measures.find((m) => m.key !== mk) ?? dataset.measures[0]!;
+              const secondaryMeasureLabel = otherMeasure.label;
+              const kpiPreviewRows = seededKpiPreviewRows(dataset.kpiPreviewRows, preset.id, sd, w.id, filterMix);
+              const base = dataset.cohortTrackingRows;
+              const cohortRows = base?.length ? seededCohortRows(base, sd, w.id, filterMix) : undefined;
+              const highlightDrop = onReorderWidgets && reorderHoverIndex === i;
+
+              return (
+                <div
+                  key={w.id}
+                  data-widget-index={i}
+                  onDragOver={onReorderWidgets ? handleDragOverIndex(i) : undefined}
+                  onDragLeave={() => setReorderHoverIndex(null)}
+                  onDrop={onReorderWidgets ? handleDropOnIndex(i) : undefined}
+                  className={`rounded-lg border bg-white/90 text-left shadow-card backdrop-blur-sm outline-none ring-primary/30 transition focus-visible:ring-2 ${
+                    selectedId === w.id ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-neutral-300"
+                  } ${highlightDrop ? "ring-2 ring-primary/50" : ""} ${w.colSpan === 2 ? "col-span-2" : ""}`}
+                  style={{ minHeight: cardMinHeight(w) }}
+                >
+                  {onReorderWidgets || onDeleteWidget ? (
+                    <div
+                      className={`flex items-stretch border-b border-black/[0.06] bg-neutral-50/90 ${onReorderWidgets ? "" : "justify-end"}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {onReorderWidgets ? (
+                        <div
+                          draggable
+                          onDragStart={handleDragStart(i)}
+                          onDragEnd={handleDragEnd}
+                          className="flex min-w-0 flex-1 cursor-grab items-center justify-center gap-1 py-1 text-[10px] text-figma-sub active:cursor-grabbing"
+                          title="拖拽排序"
+                        >
+                          <span className="select-none tracking-tight">⋮⋮</span>
+                          <span>拖拽调整顺序</span>
+                        </div>
+                      ) : null}
+                      {onDeleteWidget ? <WidgetCanvasMoreMenu widgetId={w.id} onDelete={onDeleteWidget} /> : null}
+                    </div>
+                  ) : null}
+                  <ChartFilterToolbar values={filterState} onChange={onFilterChange} />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onSelectWidget(w.id);
+                    }}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        onSelectWidget(w.id);
+                      }
+                    }}
+                    className="outline-none ring-primary/30 focus-visible:ring-2"
+                  >
+                    <WidgetBody
+                      w={w}
+                      measureKey={mk}
+                      dataSeed={sd}
+                      filterMix={filterMix}
+                      measureLabel={measureLabel}
+                      secondaryMeasureLabel={secondaryMeasureLabel}
+                      dimensionLabels={dimensionLabels}
+                      kpiPreviewRows={kpiPreviewRows}
+                      cohortRows={cohortRows}
+                      pct={pct}
+                      accent={cardAccentForIndex(i, activeDashTab)}
+                      slotBindings={slotBindingsByWidget[w.id] ?? {}}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="pointer-events-none absolute bottom-6 right-10 opacity-40">

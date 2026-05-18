@@ -5,6 +5,7 @@
 import type { CanvasWidget, TemplatePreset } from "./dashboardModel";
 
 export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
+  blank: [[]],
   "customer-biz": [
     [
       { id: "cb0_a", type: "kpi", title: "经营收入", colSpan: 1 },
@@ -16,6 +17,7 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
     [
       { id: "cb1_a", type: "kpi", title: "战略客户占比", colSpan: 1 },
       { id: "cb1_b", type: "kpi", title: "长尾客户数", colSpan: 1 },
+      { id: "cb1_tags", type: "table", title: "客户标签分布", colSpan: 2, replicaLayout: "customerTagTable" },
       { id: "cb1_c", type: "bar", title: "分层收入结构", colSpan: 2 },
       { id: "cb1_d", type: "table", title: "分层客户清单", colSpan: 2 },
       { id: "cb1_e", type: "line", title: "分层迁徙趋势", colSpan: 2 },
@@ -30,10 +32,22 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
   ],
   cockpit: [
     [
-      { id: "cp0_a", type: "kpi", title: "Iris 指标", colSpan: 1, replicaLayout: "irisKpis" },
-      { id: "cp0_b", type: "liquid", title: "水波图-Iris数据集", colSpan: 1, replicaLayout: "irisLiquid" },
-      { id: "cp0_c", type: "line", title: "核心指标趋势", colSpan: 2 },
-      { id: "cp0_d", type: "table", title: "风险预警明细", colSpan: 2, replicaLayout: "irisCrossTable" },
+      {
+        id: "cp0_ins",
+        type: "kpi",
+        title: "银行驾驶舱总览",
+        colSpan: 2,
+        replicaLayout: "insuranceCockpitBoard",
+        libraryLabel: "银行驾驶舱",
+      },
+      {
+        id: "cp0_e",
+        type: "kpi",
+        title: "指标拆解树",
+        colSpan: 2,
+        replicaLayout: "metricBreakdownTree",
+        libraryLabel: "指标拆解树",
+      },
     ],
     [
       { id: "cp1_a", type: "bar", title: "项目里程碑达成", colSpan: 2 },
@@ -81,6 +95,7 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
   ],
   "report-kpi": [
     [
+      { id: "rp0_org", type: "table", title: "各机构进度与达成", colSpan: 2, replicaLayout: "orgProgressBoard" },
       { id: "rp0_a", type: "bar", title: "部门排名", colSpan: 2 },
       { id: "rp0_b", type: "liquid", title: "达成率", colSpan: 1 },
       { id: "rp0_c", type: "kpi", title: "考核得分", colSpan: 1 },

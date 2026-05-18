@@ -19,12 +19,15 @@ export type LeftLibrarySection = {
 function mapLabelToWidget(label: string, section: string): WidgetType {
   if (/热力地图|色彩地图|气泡地图|飞线地图|符号地图|楼宇热力/.test(label)) return "bar";
   if (/交叉|明细|多维|趋势分析|热力图/.test(label)) return "table";
+  /** 「进度条」含「进度」子串，必须在广义「进度→kpi」规则之前，否则会被误判为指标卡 */
+  if (label === "进度条" || /^进度条/.test(label)) return "liquid";
   if (/水波|液/.test(label)) return "liquid";
   if (section === "线/面图" && (label === "堆积" || label === "百分比")) return "line";
   if (section === "柱/条图" && (label === "堆积" || label === "百分比")) return "bar";
   if (/柱|条|排行|瀑布|子弹|箱形|直方|饼|玫瑰|旭日|雷达|矩形树|漏斗|桑基|来源|对比|弧/.test(label)) return "bar";
   if (/线|面积|组合|散点|分面|气泡图/.test(label)) return "line";
-  if (/翻牌|进度|仪表|指标看板|指标趋势|指标拆解|指标关系|词云|时间轴/.test(label)) return "kpi";
+  /** 不含裸「进度」，避免再次吃掉「进度条」 */
+  if (/翻牌|仪表|指标看板|指标趋势|指标拆解|指标关系|词云|时间轴/.test(label)) return "kpi";
   return "kpi";
 }
 
