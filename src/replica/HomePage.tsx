@@ -19,8 +19,7 @@ function HomeTemplateCard({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <div
       onClick={onSelect}
       aria-describedby={descriptionId}
       className="group flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#E2E8F0] bg-white text-left shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 motion-reduce:transition-none"
@@ -47,7 +46,7 @@ function HomeTemplateCard({
           {preset.description}
         </p>
       </div>
-    </button>
+    </div>
   );
 }
 

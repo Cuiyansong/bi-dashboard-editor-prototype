@@ -102,8 +102,6 @@ export function ReplicaCanvas({
     null,
   );
 
-  console.log("selectedId: ", preset.id === "customer-biz", selectedId);
-
   const isCustomerBizTemplate = preset?.id === "customer-biz";
 
   const handleDragStart = useCallback(
