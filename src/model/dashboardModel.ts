@@ -54,7 +54,7 @@ export const TEMPLATES: TemplatePreset[] = [
     name: "考核分析",
     pageTitle: "考核分析",
     description: "KPI 考核与排名视图占位",
-    dashboardTabs: ["KPI 考核", "排名"],
+    dashboardTabs: ["通报报表", "考核报表"],
     accent: "#fa8c16",
     widgets: [
       { id: "w1", type: "bar", title: "部门排名", colSpan: 2 },
@@ -104,7 +104,7 @@ export const TEMPLATES: TemplatePreset[] = [
     name: "效益分析",
     pageTitle: "效益分析",
     description: "营销效益策略分析、规则版本与影响评估",
-    dashboardTabs: ["客群策略全周期追踪", "规则与版本", "影响评估"],
+    dashboardTabs: ["客户PA", "机构PA", "客群PA", "客层PA"],
     accent: "#722ed1",
     widgets: [
       {

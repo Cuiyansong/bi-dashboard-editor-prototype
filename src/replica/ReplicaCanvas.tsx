@@ -15,7 +15,9 @@ import { cardAccentForIndex } from "./chartAccents";
 import type { FieldSlotBindings } from "./ReplicaRightPanel";
 import { WidgetBody } from "./canvasWidgets";
 import {
+  CUSTOMER_FILTER_DEFS,
   filterMixFromState,
+  PRODUCT_FILTER_DEFS,
   type CustomerFilterState,
 } from "../model/customerFilters";
 import { TemplateFilterBar } from "./TemplateFilterBar";
@@ -103,6 +105,7 @@ export function ReplicaCanvas({
   );
 
   const isCustomerBizTemplate = preset?.id === "customer-biz";
+  const isProductStoreTemplate = preset?.id === "product-store";
 
   const handleDragStart = useCallback(
     (index: number) => (e: React.DragEvent) => {
@@ -226,6 +229,15 @@ export function ReplicaCanvas({
           {isCustomerBizTemplate && (
             <TemplateFilterBar
               values={filterState}
+              filters={CUSTOMER_FILTER_DEFS}
+              onChange={onFilterChange}
+              onQuery={onFilterQuery}
+            />
+          )}
+          {isProductStoreTemplate && (
+            <TemplateFilterBar
+              values={filterState}
+              filters={PRODUCT_FILTER_DEFS}
               onChange={onFilterChange}
               onQuery={onFilterQuery}
             />
