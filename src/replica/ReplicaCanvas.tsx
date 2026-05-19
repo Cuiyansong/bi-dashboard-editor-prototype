@@ -15,12 +15,9 @@ import { cardAccentForIndex } from "./chartAccents";
 import type { FieldSlotBindings } from "./ReplicaRightPanel";
 import { WidgetBody } from "./canvasWidgets";
 import {
-  CUSTOMER_FILTER_DEFS,
   filterMixFromState,
-  PRODUCT_FILTER_DEFS,
   type CustomerFilterState,
 } from "../model/customerFilters";
-import { TemplateFilterBar } from "./TemplateFilterBar";
 import { WidgetCanvasMoreMenu } from "./WidgetCanvasMoreMenu";
 import { ChartFilterToolbar } from "./ChartFilterToolbar";
 
@@ -111,8 +108,6 @@ export function ReplicaCanvas({
     null,
   );
 
-  const isCustomerBizTemplate = preset?.id === "customer-biz";
-  const isProductStoreTemplate = preset?.id === "product-store";
   const isFullCanvas = hideGlobalFilterBar && hideWidgetToolbar;
 
   const handleDragStart = useCallback(
@@ -236,22 +231,6 @@ export function ReplicaCanvas({
               ) : null}
             </h1>
           </div>
-          {!hideGlobalFilterBar && isCustomerBizTemplate && (
-            <TemplateFilterBar
-              values={filterState}
-              filters={CUSTOMER_FILTER_DEFS}
-              onChange={onFilterChange}
-              onQuery={onFilterQuery}
-            />
-          )}
-          {!hideGlobalFilterBar && isProductStoreTemplate && (
-            <TemplateFilterBar
-              values={filterState}
-              filters={PRODUCT_FILTER_DEFS}
-              onChange={onFilterChange}
-              onQuery={onFilterQuery}
-            />
-          )}
           <div
             className={`relative mx-auto grid w-full gap-3 px-1 ${
               isFullCanvas ? "" : "max-w-[1247px]"

@@ -2,6 +2,7 @@
 import type { CanvasWidget } from "../model/dashboardModel";
 import {
   CUST_TIER_OPTIONS,
+  PRODUCT_NAME_OPTIONS,
   SEVEN_COHORT_OPTIONS,
 } from "../model/customerFilters";
 
@@ -47,16 +48,12 @@ function getTabFields(tabLabel: string): readonly string[] {
 
 const PENDING_FIELDS = [
   "成交价",
-  "贷款方式",
-  "贷款委托机构",
-  "物业交割时设立",
   "定金金额（第二笔）",
   "定金金额（第一笔）",
   "定金总额",
   "购房款/首付款（第二笔）",
   "购房款/首付款（第一笔）",
   "购房款总额",
-  "户口迁出证明",
   "首付款总金额",
   "尾款总金额",
   "尾款金额（剩）",
@@ -127,8 +124,21 @@ function orderedSelectedFields(selected: Set<string>): string[] {
   ];
 }
 
-function buildPivotRows(cohorts: Set<string>, tiers: Set<string>): PivotRow[] {
-  const cohortList = SEVEN_COHORT_OPTIONS.filter((c) => cohorts.has(c));
+function buildPivotRows(
+  cohorts: Set<string>,
+  tiers: Set<string>,
+  primaryOptions: readonly string[],
+  withTier: boolean,
+): PivotRow[] {
+  const cohortList = primaryOptions.filter((c) => cohorts.has(c));
+  if (!withTier) {
+    return cohortList.map((cohort) => ({
+      cohort,
+      tier: "",
+      showCohort: true,
+      cohortRowSpan: 1,
+    }));
+  }
   const tierList = CUST_TIER_OPTIONS.filter((t) => tiers.has(t));
   const rows: PivotRow[] = [];
   for (const cohort of cohortList) {
@@ -317,11 +327,19 @@ function DimensionChipGroup({
 }
 
 function DimensionPanel({
+  panelTitle,
+  primaryLabel,
+  primaryOptions,
+  showTier,
   cohorts,
   setCohorts,
   tiers,
   setTiers,
 }: {
+  panelTitle: string;
+  primaryLabel: string;
+  primaryOptions: readonly string[];
+  showTier: boolean;
   cohorts: Set<string>;
   setCohorts: (s: Set<string>) => void;
   tiers: Set<string>;
@@ -329,7 +347,7 @@ function DimensionPanel({
 }) {
   return (
     <section
-      className="flex min-w-0 flex-col rounded-lg border"
+      className="flex h-full min-w-0 flex-col rounded-lg border"
       style={{ borderColor: TOKEN.border, background: TOKEN.card }}
     >
       <div
@@ -338,7 +356,7 @@ function DimensionPanel({
       >
         <StepBadge n={0} />
         <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
-          维度选取
+          {panelTitle}
         </h3>
         <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
           可多选
@@ -346,18 +364,22 @@ function DimensionPanel({
       </div>
       <div className="flex flex-col gap-3 p-3">
         <DimensionChipGroup
-          label="七大客群"
-          options={SEVEN_COHORT_OPTIONS}
+          label={primaryLabel}
+          options={primaryOptions}
           selected={cohorts}
           onChange={setCohorts}
         />
-        <div className="h-px" style={{ background: TOKEN.border }} />
-        <DimensionChipGroup
-          label="客户分层"
-          options={CUST_TIER_OPTIONS}
-          selected={tiers}
-          onChange={setTiers}
-        />
+        {showTier ? (
+          <>
+            <div className="h-px" style={{ background: TOKEN.border }} />
+            <DimensionChipGroup
+              label="客户分层"
+              options={CUST_TIER_OPTIONS}
+              selected={tiers}
+              onChange={setTiers}
+            />
+          </>
+        ) : null}
       </div>
     </section>
   );
@@ -616,6 +638,10 @@ function SummaryChip({
 }
 
 function QueryHeader({
+  primaryLabel,
+  primaryTotal,
+  headlineText,
+  showTier,
   cohortCount,
   tierCount,
   l1Count,
@@ -623,6 +649,10 @@ function QueryHeader({
   effectiveFieldCount,
   onReset,
 }: {
+  primaryLabel: string;
+  primaryTotal: number;
+  headlineText: string;
+  showTier: boolean;
   cohortCount: number;
   tierCount: number;
   l1Count: number;
@@ -646,21 +676,23 @@ function QueryHeader({
           QUERY
         </span>
         <span className="text-[12px]" style={{ color: TOKEN.textMuted }}>
-          自助拼装维度与指标，实时生成交叉表
+          {headlineText}
         </span>
         <span className="mx-1" style={{ color: TOKEN.border }}>
           |
         </span>
         <SummaryChip
-          label="七大客群"
-          value={`${cohortCount}/${SEVEN_COHORT_OPTIONS.length}`}
+          label={primaryLabel}
+          value={`${cohortCount}/${primaryTotal}`}
           tone="primary"
         />
-        <SummaryChip
-          label="客户分层"
-          value={`${tierCount}/${CUST_TIER_OPTIONS.length}`}
-          tone="primary"
-        />
+        {showTier ? (
+          <SummaryChip
+            label="客户分层"
+            value={`${tierCount}/${CUST_TIER_OPTIONS.length}`}
+            tone="primary"
+          />
+        ) : null}
         <SummaryChip label="一层指标" value={l1Count} />
         <SummaryChip label="二层指标" value={l2Count} />
         <SummaryChip label="生效字段" value={effectiveFieldCount} tone="primary" />
@@ -695,11 +727,21 @@ function QueryHeader({
 }
 
 function ResultPivotTable({
+  primaryLabel,
+  primaryOptions,
+  showTier,
+  headerSummary,
+  emptyHint,
   cohorts,
   tiers,
   l1Fields,
   l2Fields,
 }: {
+  primaryLabel: string;
+  primaryOptions: readonly string[];
+  showTier: boolean;
+  headerSummary: string;
+  emptyHint: string;
   cohorts: Set<string>;
   tiers: Set<string>;
   l1Fields: Set<string>;
@@ -711,12 +753,18 @@ function ResultPivotTable({
     return [...shared, ...yoyOnly];
   }, [l1Fields, l2Fields]);
 
-  const rows = useMemo(() => buildPivotRows(cohorts, tiers), [cohorts, tiers]);
+  const rows = useMemo(
+    () => buildPivotRows(cohorts, tiers, primaryOptions, showTier),
+    [cohorts, tiers, primaryOptions, showTier],
+  );
 
   const rowCount = rows.length;
-  const colCount = 2 + fields.length * 3;
+  const colCount = (showTier ? 2 : 1) + fields.length * 3;
   const isEmpty =
-    rowCount === 0 || fields.length === 0 || cohorts.size === 0 || tiers.size === 0;
+    rowCount === 0 ||
+    fields.length === 0 ||
+    cohorts.size === 0 ||
+    (showTier && tiers.size === 0);
 
   return (
     <section
@@ -734,7 +782,7 @@ function ResultPivotTable({
           <SummaryChip label="行" value={rowCount} />
           <SummaryChip label="列" value={colCount} />
           <span className="text-[11px]" style={{ color: TOKEN.textDim }}>
-            客群 × 分层 × 指标 · 演示数据
+            {headerSummary}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -749,22 +797,28 @@ function ResultPivotTable({
               <th
                 rowSpan={2}
                 className="sticky left-0 z-[2] px-3 py-1.5 text-left text-[11px] font-semibold"
-                style={{ background: TOKEN.surfaceAlt, minWidth: 108 }}
-              >
-                七大客群
-              </th>
-              <th
-                rowSpan={2}
-                className="sticky z-[2] px-3 py-1.5 text-left text-[11px] font-semibold"
                 style={{
-                  left: 108,
                   background: TOKEN.surfaceAlt,
-                  minWidth: 72,
-                  boxShadow: `1px 0 0 ${TOKEN.border}`,
+                  minWidth: showTier ? 108 : 140,
+                  boxShadow: showTier ? undefined : `1px 0 0 ${TOKEN.border}`,
                 }}
               >
-                客户分层
+                {primaryLabel}
               </th>
+              {showTier ? (
+                <th
+                  rowSpan={2}
+                  className="sticky z-[2] px-3 py-1.5 text-left text-[11px] font-semibold"
+                  style={{
+                    left: 108,
+                    background: TOKEN.surfaceAlt,
+                    minWidth: 72,
+                    boxShadow: `1px 0 0 ${TOKEN.border}`,
+                  }}
+                >
+                  客户分层
+                </th>
+              ) : null}
               {fields.map((field) => (
                 <th
                   key={field}
@@ -801,7 +855,7 @@ function ResultPivotTable({
                   className="px-4 py-10 text-center text-[12px]"
                   style={{ color: TOKEN.textDim }}
                 >
-                  请在左侧勾选客群与分层，并至少在一层或二层指标中选择一个字段后查看结果
+                  {emptyHint}
                 </td>
               </tr>
             ) : (
@@ -818,25 +872,27 @@ function ResultPivotTable({
                       style={{
                         background: TOKEN.surface,
                         color: TOKEN.text,
-                        minWidth: 108,
+                        minWidth: showTier ? 108 : 140,
                         borderRight: `1px solid ${TOKEN.border}`,
                       }}
                     >
                       {row.cohort}
                     </td>
                   ) : null}
-                  <td
-                    className="sticky z-[1] px-3 py-1.5 text-left text-[11px]"
-                    style={{
-                      left: 108,
-                      background: "#FFFFFF",
-                      color: TOKEN.textMuted,
-                      minWidth: 72,
-                      boxShadow: `1px 0 0 ${TOKEN.border}`,
-                    }}
-                  >
-                    {row.tier}
-                  </td>
+                  {showTier ? (
+                    <td
+                      className="sticky z-[1] px-3 py-1.5 text-left text-[11px]"
+                      style={{
+                        left: 108,
+                        background: "#FFFFFF",
+                        color: TOKEN.textMuted,
+                        minWidth: 72,
+                        boxShadow: `1px 0 0 ${TOKEN.border}`,
+                      }}
+                    >
+                      {row.tier}
+                    </td>
+                  ) : null}
                   {fields.map((field) =>
                     METRIC_KINDS.map((metric) => {
                       const { display, yoyValue } = cellValue(
@@ -876,8 +932,23 @@ function ResultPivotTable({
   );
 }
 
-export function SelfServiceQueryBoardCard({ w: _w, hint }: { w: CanvasWidget; hint?: string }) {
-  const [cohorts, setCohorts] = useState<Set<string>>(() => new Set(SEVEN_COHORT_OPTIONS));
+export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?: string }) {
+  const isProductMode = w.analysisMode === "product";
+  const showTier = !isProductMode;
+  const primaryOptions = isProductMode ? PRODUCT_NAME_OPTIONS : SEVEN_COHORT_OPTIONS;
+  const primaryLabel = isProductMode ? "产品名称" : "七大客群";
+  const panelTitle = isProductMode ? "产品选择" : "客群选择";
+  const headlineText = isProductMode
+    ? "按产品拼装一/二层指标，实时生成交叉分析"
+    : "按客群×分层拼装一/二层指标，实时生成交叉分析";
+  const headerSummary = isProductMode
+    ? "产品 × 指标 · 演示数据"
+    : "客群 × 分层 × 指标 · 演示数据";
+  const emptyHint = isProductMode
+    ? "请在左侧勾选产品，并至少在一层或二层指标中选择一个字段后查看结果"
+    : "请在左侧勾选客群与分层，并至少在一层或二层指标中选择一个字段后查看结果";
+
+  const [cohorts, setCohorts] = useState<Set<string>>(() => new Set(primaryOptions));
   const [tiers, setTiers] = useState<Set<string>>(() => new Set(CUST_TIER_OPTIONS));
   const [l1Fields, setL1Fields] = useState<Set<string>>(() => new Set(PENDING_FIELDS));
   const [l2Fields, setL2Fields] = useState<Set<string>>(
@@ -885,7 +956,7 @@ export function SelfServiceQueryBoardCard({ w: _w, hint }: { w: CanvasWidget; hi
   );
 
   const handleReset = () => {
-    setCohorts(new Set(SEVEN_COHORT_OPTIONS));
+    setCohorts(new Set(primaryOptions));
     setTiers(new Set(CUST_TIER_OPTIONS));
     setL1Fields(new Set(PENDING_FIELDS));
     setL2Fields(new Set<string>([...PENDING_FIELDS, ...YOY_FIELDS]));
@@ -911,6 +982,10 @@ export function SelfServiceQueryBoardCard({ w: _w, hint }: { w: CanvasWidget; hi
       ) : null}
 
       <QueryHeader
+        primaryLabel={primaryLabel}
+        primaryTotal={primaryOptions.length}
+        headlineText={headlineText}
+        showTier={showTier}
         cohortCount={cohorts.size}
         tierCount={tiers.size}
         l1Count={l1Fields.size}
@@ -920,10 +995,14 @@ export function SelfServiceQueryBoardCard({ w: _w, hint }: { w: CanvasWidget; hi
       />
 
       <div
-        className="grid gap-3"
+        className="grid items-stretch gap-3"
         style={{ gridTemplateColumns: "minmax(260px, 280px) minmax(0, 1fr)" }}
       >
         <DimensionPanel
+          panelTitle={panelTitle}
+          primaryLabel={primaryLabel}
+          primaryOptions={primaryOptions}
+          showTier={showTier}
           cohorts={cohorts}
           setCohorts={setCohorts}
           tiers={tiers}
@@ -945,10 +1024,19 @@ export function SelfServiceQueryBoardCard({ w: _w, hint }: { w: CanvasWidget; hi
             onChange={setL2Fields}
             defaultCollapsed
           />
+          <ResultPivotTable
+            primaryLabel={primaryLabel}
+            primaryOptions={primaryOptions}
+            showTier={showTier}
+            headerSummary={headerSummary}
+            emptyHint={emptyHint}
+            cohorts={cohorts}
+            tiers={tiers}
+            l1Fields={l1Fields}
+            l2Fields={l2Fields}
+          />
         </div>
       </div>
-
-      <ResultPivotTable cohorts={cohorts} tiers={tiers} l1Fields={l1Fields} l2Fields={l2Fields} />
     </div>
   );
 }

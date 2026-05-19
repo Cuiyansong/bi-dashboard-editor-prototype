@@ -66,7 +66,12 @@ export function HomePage({ onSelectTemplate }: HomePageProps) {
             <p className="font-['Inter',sans-serif] text-xs text-[#94A3B8]">共 {HOME_TEMPLATES.length} 套</p>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-1 gap-4">
+          <div
+            className="mx-auto grid min-h-0 w-full max-w-[1640px] flex-1 grid-rows-1 gap-5"
+            style={{
+              gridTemplateColumns: `repeat(${HOME_TEMPLATES.length}, minmax(0, 1fr))`,
+            }}
+          >
             {HOME_TEMPLATES.map((preset) => {
               const idx = TEMPLATES.findIndex((t) => t.id === preset.id);
               return (

@@ -23,6 +23,8 @@ export interface CanvasWidget {
     | "compoundQuery"
     | "insuranceCockpitBoard"
     | "selfServiceQuery";
+  /** 客群/产品分析交叉表模式 */
+  analysisMode?: "customer" | "product";
 }
 
 export interface TemplatePreset {
@@ -33,6 +35,8 @@ export interface TemplatePreset {
   description: string;
   dashboardTabs: string[];
   widgets: CanvasWidget[];
+  /** 首页模板缩略图专用 widgets；不设置时落回 widgets */
+  previewWidgets?: CanvasWidget[];
   accent: string;
 }
 
@@ -66,41 +70,6 @@ export const TEMPLATES: TemplatePreset[] = [
     ],
   },
   {
-    id: "customer-biz",
-    name: "客户分析",
-    pageTitle: "客户分析",
-    description: "客户经营总览、客户分层与产品渗透占位",
-    dashboardTabs: ["经营总览", "客户分层", "产品渗透"],
-    accent: "#08979c",
-    widgets: [
-      { id: "w1", type: "kpi", title: "经营收入", colSpan: 1 },
-      { id: "w2", type: "kpi", title: "活跃客户", colSpan: 1 },
-      { id: "w3", type: "bar", title: "区域收入对比", colSpan: 2 },
-      { id: "w4", type: "line", title: "产品渗透趋势", colSpan: 2 },
-      { id: "w5", type: "table", title: "客户分层明细", colSpan: 2 },
-    ],
-  },
-  {
-    id: "product-store",
-    name: "产品分析",
-    pageTitle: "产品分析",
-    description: "产品总览、产品矩阵与产品渗透分析",
-    dashboardTabs: ["总览", "产品矩阵", "产品渗透分析"],
-    accent: "#1677ff",
-    widgets: [
-      {
-        id: "w1",
-        type: "kpi",
-        title: "产品总览",
-        colSpan: 2,
-        replicaLayout: "insuranceCockpitBoard",
-      },
-      { id: "w2", type: "line", title: "周期趋势", colSpan: 2 },
-      { id: "w3", type: "table", title: "产品矩阵", colSpan: 2 },
-      { id: "w4", type: "bar", title: "产品渗透分析", colSpan: 2},
-    ],
-  },
-  {
     id: "strategy",
     name: "效益分析",
     pageTitle: "效益分析",
@@ -123,20 +92,53 @@ export const TEMPLATES: TemplatePreset[] = [
   },
   {
     id: "self-service-query",
-    name: "自助查询",
-    pageTitle: "自助查询",
-    description: "维度选取 + 一/二层指标选取，自定义交叉表查询",
-    dashboardTabs: ["指标查询"],
+    name: "客群分析",
+    pageTitle: "客群分析",
+    description: "七大客群 × 客户分层为维度，一/二层指标自由拼装交叉分析",
+    dashboardTabs: ["交叉分析"],
     accent: "#2563EB",
     widgets: [
       {
         id: "w_ssq",
         type: "table",
-        title: "自助查询",
+        title: "客群分析",
         colSpan: 2,
         replicaLayout: "selfServiceQuery",
-        libraryLabel: "自助查询",
+        libraryLabel: "客群分析",
+        analysisMode: "customer",
       },
+    ],
+    previewWidgets: [
+      { id: "pv_ssq_a", type: "kpi", title: "经营收入", colSpan: 1 },
+      { id: "pv_ssq_b", type: "kpi", title: "活跃客户", colSpan: 1 },
+      { id: "pv_ssq_c", type: "bar", title: "区域收入对比", colSpan: 2 },
+      { id: "pv_ssq_d", type: "line", title: "产品渗透趋势", colSpan: 2 },
+      { id: "pv_ssq_e", type: "table", title: "客户分层明细", colSpan: 2 },
+    ],
+  },
+  {
+    id: "product-analysis",
+    name: "产品分析",
+    pageTitle: "产品分析",
+    description: "产品名称为维度，一/二层指标自由拼装交叉分析",
+    dashboardTabs: ["交叉分析"],
+    accent: "#0EA5E9",
+    widgets: [
+      {
+        id: "w_pa",
+        type: "table",
+        title: "产品分析",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "产品分析",
+        analysisMode: "product",
+      },
+    ],
+    previewWidgets: [
+      { id: "pv_pa_a", type: "kpi", title: "产品总览", colSpan: 2 },
+      { id: "pv_pa_b", type: "line", title: "周期趋势", colSpan: 2 },
+      { id: "pv_pa_c", type: "table", title: "产品矩阵", colSpan: 2 },
+      { id: "pv_pa_d", type: "bar", title: "产品渗透分析", colSpan: 2 },
     ],
   },
   {

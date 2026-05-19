@@ -31,7 +31,7 @@ export function TemplateMarketThumbnail({
             gridAutoFlow: "row",
           }}
         >
-          {preset.widgets.map((w) => {
+          {(preset.previewWidgets ?? preset.widgets).map((w) => {
             const span = gridSpan(w);
             return (
               <div

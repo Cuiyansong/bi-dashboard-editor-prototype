@@ -6,36 +6,6 @@ import type { CanvasWidget, TemplatePreset } from "./dashboardModel";
 
 export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
   blank: [[]],
-  "customer-biz": [
-    [
-      { id: "cb0_a", type: "kpi", title: "经营收入", colSpan: 1 },
-      { id: "cb0_b", type: "kpi", title: "活跃客户", colSpan: 1 },
-      { id: "cb0_c", type: "bar", title: "区域收入对比", colSpan: 2 },
-      { id: "cb0_d", type: "line", title: "产品渗透趋势", colSpan: 2 },
-      { id: "cb0_e", type: "table", title: "客户分层明细", colSpan: 2 },
-    ],
-    [
-      { id: "cb1_a", type: "kpi", title: "战略客户占比", colSpan: 1 },
-      { id: "cb1_b", type: "kpi", title: "长尾客户数", colSpan: 1 },
-      {
-        id: "cb1_tags",
-        type: "table",
-        title: "客户标签分布",
-        colSpan: 2,
-        replicaLayout: "customerTagTable",
-      },
-      { id: "cb1_c", type: "bar", title: "分层收入结构", colSpan: 2 },
-      { id: "cb1_d", type: "table", title: "分层客户清单", colSpan: 2 },
-      { id: "cb1_e", type: "line", title: "分层迁徙趋势", colSpan: 2 },
-    ],
-    [
-      { id: "cb2_a", type: "line", title: "核心产品渗透率", colSpan: 2 },
-      { id: "cb2_b", type: "bar", title: "产品持有分布", colSpan: 2 },
-      { id: "cb2_c", type: "kpi", title: "渗透达标率", colSpan: 1 },
-      { id: "cb2_d", type: "kpi", title: "交叉销售指数", colSpan: 1 },
-      { id: "cb2_e", type: "table", title: "产品渗透明细", colSpan: 2 },
-    ],
-  ],
   cockpit: [
     [
       {
@@ -129,7 +99,6 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
       { id: "rp2_e", type: "line", title: "排名变动趋势", colSpan: 2 },
     ],
   ],
-  "product-store": [],
 };
 
 /** 与模板 Tab 数对齐的初始画布；无定制表时按 Tab 克隆 widgets 并改写 id */

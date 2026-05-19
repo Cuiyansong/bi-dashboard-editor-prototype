@@ -53,7 +53,7 @@ export function HomeHeroBanner({ titleId }: HomeHeroBannerProps) {
             选择模板，快速搭建数据看板
           </h1>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-blue-100/90">
-            预置驾驶舱、通报考核、客户经营、策略编辑与自助查询场景，支持全局筛选与图表联动。
+            预置驾驶舱、通报考核、客户经营、策略编辑与客群分析场景，支持全局筛选与图表联动。
           </p>
         </div>
 

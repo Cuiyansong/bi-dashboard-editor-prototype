@@ -146,8 +146,9 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
   const canvasWidgetsRef = useRef<CanvasWidget[]>([]);
   canvasWidgetsRef.current = canvasWidgets;
 
-  /** 自助查询模板使用全画布形态：隐藏左右栏、顶部工具条、全局筛选与图表自带工具栏 */
-  const isFullCanvasTemplate = preset.id === "self-service-query";
+  /** 自助查询/产品分析模板使用全画布形态：隐藏左右栏、顶部工具条、全局筛选与图表自带工具栏 */
+  const isFullCanvasTemplate =
+    preset.id === "self-service-query" || preset.id === "product-analysis";
 
   const selected = useMemo(() => canvasWidgets.find((w) => w.id === selectedId) ?? null, [canvasWidgets, selectedId]);
   const slotBindings = selectedId ? fieldBindingsMap[selectedId] ?? {} : {};

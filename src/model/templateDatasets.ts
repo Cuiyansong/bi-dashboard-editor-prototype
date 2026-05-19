@@ -51,26 +51,6 @@ export const STRATEGY_COHORT_DEFAULT_ROWS: CohortTrackingMockRow[] = [
 
 const DATASETS: TemplateDatasetDef[] = [
   {
-    templateId: "customer-biz",
-    datasetName: "客户经营主题库",
-    dimensions: [
-      { key: "cust_tier", label: "客户分层", semantic: "string" },
-      { key: "region", label: "经营大区", semantic: "string" },
-      { key: "stat_month", label: "统计月份", semantic: "date" },
-    ],
-    measures: [
-      { key: "rev", label: "经营收入", semantic: "number" },
-      { key: "active_cnt", label: "活跃客户数", semantic: "number" },
-      { key: "penetration", label: "产品渗透率", semantic: "number" },
-      { key: "repurchase", label: "复购率", semantic: "number" },
-    ],
-    kpiPreviewRows: [
-      { label: "战略客户", value: "128.6" },
-      { label: "成长客户", value: "356.2" },
-      { label: "长尾客户", value: "892.4" },
-    ],
-  },
-  {
     templateId: "cockpit",
     datasetName: "驾驶舱风控主题库",
     dimensions: [
