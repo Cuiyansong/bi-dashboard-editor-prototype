@@ -31,7 +31,7 @@ function HomeTemplateCard({
           style={{ backgroundColor: preset.accent }}
           aria-hidden
         />
-        <h2 className="min-w-0 flex-1 truncate font-['Inter',sans-serif] text-[15px] font-semibold text-[#0F172A] group-hover:text-primary">
+        <h2 className="min-w-0 flex-1 truncate font-['Inter',sans-serif] text-[24px] font-semibold text-[#0F172A] group-hover:text-primary">
           {preset.name}
         </h2>
         <span className="shrink-0 font-['Inter',sans-serif] text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">

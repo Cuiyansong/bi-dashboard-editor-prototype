@@ -1,12 +1,23 @@
 import { figmaAssets } from "./figmaAssets";
 import { useCallback, useState, type Ref } from "react";
-import { CanvasWidget, MeasureKey, TemplatePreset } from "../model/dashboardModel";
+import {
+  CanvasWidget,
+  MeasureKey,
+  TemplatePreset,
+} from "../model/dashboardModel";
 import type { TemplateDatasetDef } from "../model/templateDatasets";
-import { measureValueForWidget, seededCohortRows, seededKpiPreviewRows } from "../model/templateDatasets";
+import {
+  measureValueForWidget,
+  seededCohortRows,
+  seededKpiPreviewRows,
+} from "../model/templateDatasets";
 import { cardAccentForIndex } from "./chartAccents";
 import type { FieldSlotBindings } from "./ReplicaRightPanel";
 import { WidgetBody } from "./canvasWidgets";
-import { filterMixFromState, type CustomerFilterState } from "../model/customerFilters";
+import {
+  filterMixFromState,
+  type CustomerFilterState,
+} from "../model/customerFilters";
 import { TemplateFilterBar } from "./TemplateFilterBar";
 import { WidgetCanvasMoreMenu } from "./WidgetCanvasMoreMenu";
 import { ChartFilterToolbar } from "./ChartFilterToolbar";
@@ -39,7 +50,10 @@ export type ReplicaCanvasProps = {
   slotBindingsByWidget: Record<string, FieldSlotBindings>;
   /** 看板级筛选（标题下方独立卡片） */
   filterState: CustomerFilterState;
-  onFilterChange: (filterId: keyof CustomerFilterState, value: string[]) => void;
+  onFilterChange: (
+    filterId: keyof CustomerFilterState,
+    value: string[],
+  ) => void;
   onFilterQuery: () => void;
   onReorderWidgets?: (fromIndex: number, toIndex: number) => void;
   /** 从卡片「更多」菜单删除组件 */
@@ -84,24 +98,36 @@ export function ReplicaCanvas({
   onDeleteWidget,
 }: ReplicaCanvasProps) {
   const dimensionLabels = dataset.dimensions.map((d) => d.label);
-  const [reorderHoverIndex, setReorderHoverIndex] = useState<number | null>(null);
+  const [reorderHoverIndex, setReorderHoverIndex] = useState<number | null>(
+    null,
+  );
 
-  const handleDragStart = useCallback((index: number) => (e: React.DragEvent) => {
-    e.stopPropagation();
-    e.dataTransfer.setData("text/bi-widget-idx", String(index));
-    e.dataTransfer.effectAllowed = "move";
-  }, []);
+  console.log("selectedId: ", preset.id === "customer-biz", selectedId);
+
+  const isCustomerBizTemplate = preset?.id === "customer-biz";
+
+  const handleDragStart = useCallback(
+    (index: number) => (e: React.DragEvent) => {
+      e.stopPropagation();
+      e.dataTransfer.setData("text/bi-widget-idx", String(index));
+      e.dataTransfer.effectAllowed = "move";
+    },
+    [],
+  );
 
   const handleDragEnd = useCallback(() => {
     setReorderHoverIndex(null);
   }, []);
 
-  const handleDragOverIndex = useCallback((index: number) => (e: React.DragEvent) => {
-    if (!onReorderWidgets) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setReorderHoverIndex(index);
-  }, [onReorderWidgets]);
+  const handleDragOverIndex = useCallback(
+    (index: number) => (e: React.DragEvent) => {
+      if (!onReorderWidgets) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setReorderHoverIndex(index);
+    },
+    [onReorderWidgets],
+  );
 
   const handleDropOnIndex = useCallback(
     (toIndex: number) => (e: React.DragEvent) => {
@@ -124,10 +150,18 @@ export function ReplicaCanvas({
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-figma-grey-98" />
         <div className="absolute inset-0 overflow-hidden">
-          <img alt="" className="absolute bottom-0 left-0 h-[58.2%] w-full max-w-none object-cover" src={c.bgLower} />
+          <img
+            alt=""
+            className="absolute bottom-0 left-0 h-[58.2%] w-full max-w-none object-cover"
+            src={c.bgLower}
+          />
         </div>
         <div className="absolute inset-0 overflow-hidden">
-          <img alt="" className="absolute left-0 top-0 h-[69.06%] w-full max-w-none object-cover" src={c.bgUpper} />
+          <img
+            alt=""
+            className="absolute left-0 top-0 h-[69.06%] w-full max-w-none object-cover"
+            src={c.bgUpper}
+          />
         </div>
       </div>
 
@@ -161,27 +195,43 @@ export function ReplicaCanvas({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto px-6 pb-4 pt-5" onClick={() => onSelectWidget(null)}>
+        <div
+          className="min-h-0 flex-1 overflow-auto px-6 pb-4 pt-5"
+          onClick={() => onSelectWidget(null)}
+        >
           <div className="pb-3 pl-1 pt-1">
             <h1 className="flex flex-wrap items-baseline gap-x-1.5 font-['Inter',sans-serif] leading-[39.2px] text-figma-text">
-              <span className="text-[28px] font-semibold tracking-tight" data-bi-replica-page-title>
+              <span
+                className="text-[28px] font-semibold tracking-tight"
+                data-bi-replica-page-title
+              >
                 {pageTitle}
               </span>
               {dashTabLabel ? (
                 <>
-                  <span className="text-[22px] font-semibold text-figma-sub/70" aria-hidden>
+                  <span
+                    className="text-[22px] font-semibold text-figma-sub/70"
+                    aria-hidden
+                  >
                     ·
                   </span>
-                  <span className="text-[20px] font-medium text-figma-sub" data-bi-replica-page-tab>
+                  <span
+                    className="text-[20px] font-medium text-figma-sub"
+                    data-bi-replica-page-tab
+                  >
                     {dashTabLabel}
                   </span>
                 </>
               ) : null}
             </h1>
           </div>
-
-          <TemplateFilterBar values={filterState} onChange={onFilterChange} onQuery={onFilterQuery} />
-
+          {isCustomerBizTemplate && (
+            <TemplateFilterBar
+              values={filterState}
+              onChange={onFilterChange}
+              onQuery={onFilterQuery}
+            />
+          )}
           <div
             className="relative mx-auto grid w-full max-w-[1247px] gap-3 px-1"
             style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
@@ -191,31 +241,52 @@ export function ReplicaCanvas({
             {widgets.length === 0 ? (
               <div className="col-span-2 flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-white/60 py-12 text-center">
                 <p className="text-sm font-medium text-figma-text">画布为空</p>
-                <p className="mt-2 max-w-sm text-xs text-figma-sub">从左侧「添加图表」打开组件库，拖入图表到此处即可开始搭建</p>
+                <p className="mt-2 max-w-sm text-xs text-figma-sub">
+                  从左侧「添加图表」打开组件库，拖入图表到此处即可开始搭建
+                </p>
               </div>
             ) : null}
             {widgets.map((w, i) => {
               const mk = widgetPrimaryMeasureById[w.id] ?? primaryMeasure;
               const sd = widgetDataSeedById[w.id] ?? 0;
               const filterMix = filterMixFromState(filterState);
-              const pct = Math.min(100, measureValueForWidget(mk, sd, w.id, filterMix));
-              const measureLabel = dataset.measures.find((m) => m.key === mk)?.label ?? dataset.measures[0]!.label;
-              const otherMeasure = dataset.measures.find((m) => m.key !== mk) ?? dataset.measures[0]!;
+              const pct = Math.min(
+                100,
+                measureValueForWidget(mk, sd, w.id, filterMix),
+              );
+              const measureLabel =
+                dataset.measures.find((m) => m.key === mk)?.label ??
+                dataset.measures[0]!.label;
+              const otherMeasure =
+                dataset.measures.find((m) => m.key !== mk) ??
+                dataset.measures[0]!;
               const secondaryMeasureLabel = otherMeasure.label;
-              const kpiPreviewRows = seededKpiPreviewRows(dataset.kpiPreviewRows, preset.id, sd, w.id, filterMix);
+              const kpiPreviewRows = seededKpiPreviewRows(
+                dataset.kpiPreviewRows,
+                preset.id,
+                sd,
+                w.id,
+                filterMix,
+              );
               const base = dataset.cohortTrackingRows;
-              const cohortRows = base?.length ? seededCohortRows(base, sd, w.id, filterMix) : undefined;
+              const cohortRows = base?.length
+                ? seededCohortRows(base, sd, w.id, filterMix)
+                : undefined;
               const highlightDrop = onReorderWidgets && reorderHoverIndex === i;
 
               return (
                 <div
                   key={w.id}
                   data-widget-index={i}
-                  onDragOver={onReorderWidgets ? handleDragOverIndex(i) : undefined}
+                  onDragOver={
+                    onReorderWidgets ? handleDragOverIndex(i) : undefined
+                  }
                   onDragLeave={() => setReorderHoverIndex(null)}
                   onDrop={onReorderWidgets ? handleDropOnIndex(i) : undefined}
                   className={`rounded-lg border bg-white/90 text-left shadow-card backdrop-blur-sm outline-none ring-primary/30 transition focus-visible:ring-2 ${
-                    selectedId === w.id ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-neutral-300"
+                    selectedId === w.id
+                      ? "border-primary ring-1 ring-primary/30"
+                      : "border-border hover:border-neutral-300"
                   } ${highlightDrop ? "ring-2 ring-primary/50" : ""} ${w.colSpan === 2 ? "col-span-2" : ""}`}
                   style={{ minHeight: cardMinHeight(w) }}
                 >
@@ -236,10 +307,18 @@ export function ReplicaCanvas({
                           <span>拖拽调整顺序</span>
                         </div>
                       ) : null}
-                      {onDeleteWidget ? <WidgetCanvasMoreMenu widgetId={w.id} onDelete={onDeleteWidget} /> : null}
+                      {onDeleteWidget ? (
+                        <WidgetCanvasMoreMenu
+                          widgetId={w.id}
+                          onDelete={onDeleteWidget}
+                        />
+                      ) : null}
                     </div>
                   ) : null}
-                  <ChartFilterToolbar values={filterState} onChange={onFilterChange} />
+                  <ChartFilterToolbar
+                    values={filterState}
+                    onChange={onFilterChange}
+                  />
                   <div
                     role="button"
                     tabIndex={0}
@@ -276,7 +355,11 @@ export function ReplicaCanvas({
           </div>
 
           <div className="pointer-events-none absolute bottom-6 right-10 opacity-40">
-            <img alt="" className="h-16 w-auto max-w-[120px] object-contain" src={c.watermark} />
+            <img
+              alt=""
+              className="h-16 w-auto max-w-[120px] object-contain"
+              src={c.watermark}
+            />
           </div>
         </div>
       </div>
