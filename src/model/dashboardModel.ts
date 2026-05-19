@@ -51,8 +51,8 @@ export const TEMPLATES: TemplatePreset[] = [
   // },
   {
     id: "report-kpi",
-    name: "绩效考核",
-    pageTitle: "绩效考核",
+    name: "考核分析",
+    pageTitle: "考核分析",
     description: "KPI 考核与排名视图占位",
     dashboardTabs: ["KPI 考核", "排名"],
     accent: "#fa8c16",
@@ -66,9 +66,9 @@ export const TEMPLATES: TemplatePreset[] = [
   },
   {
     id: "customer-biz",
-    name: "客户经营",
-    pageTitle: "客户经营",
-    description: "经营总览、客户分层与产品渗透占位",
+    name: "客户分析",
+    pageTitle: "客户分析",
+    description: "客户经营总览、客户分层与产品渗透占位",
     dashboardTabs: ["经营总览", "客户分层", "产品渗透"],
     accent: "#08979c",
     widgets: [
@@ -81,16 +81,16 @@ export const TEMPLATES: TemplatePreset[] = [
   },
   {
     id: "product-store",
-    name: "产品货架",
-    pageTitle: "产品货架",
-    description: "产品货架总览、产品矩阵与产品渗透分析",
+    name: "产品分析",
+    pageTitle: "产品分析",
+    description: "产品总览、产品矩阵与产品渗透分析",
     dashboardTabs: ["总览", "产品矩阵", "产品渗透分析"],
     accent: "#1677ff",
     widgets: [
       {
         id: "w1",
         type: "kpi",
-        title: "产品货架总览",
+        title: "产品总览",
         colSpan: 2,
         replicaLayout: "insuranceCockpitBoard",
       },
@@ -101,9 +101,9 @@ export const TEMPLATES: TemplatePreset[] = [
   },
   {
     id: "strategy",
-    name: "策略管理",
-    pageTitle: "策略管理",
-    description: "营销策略管理、规则版本与影响评估",
+    name: "效益分析",
+    pageTitle: "效益分析",
+    description: "营销效益策略分析、规则版本与影响评估",
     dashboardTabs: ["客群策略全周期追踪", "规则与版本", "影响评估"],
     accent: "#722ed1",
     widgets: [
