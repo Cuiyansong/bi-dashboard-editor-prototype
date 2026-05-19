@@ -146,6 +146,9 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
   const canvasWidgetsRef = useRef<CanvasWidget[]>([]);
   canvasWidgetsRef.current = canvasWidgets;
 
+  /** 自助查询模板使用全画布形态：隐藏左右栏、顶部工具条、全局筛选与图表自带工具栏 */
+  const isFullCanvasTemplate = preset.id === "self-service-query";
+
   const selected = useMemo(() => canvasWidgets.find((w) => w.id === selectedId) ?? null, [canvasWidgets, selectedId]);
   const slotBindings = selectedId ? fieldBindingsMap[selectedId] ?? {} : {};
   const filterFieldsForSelected = selectedId ? filterFieldsByWidgetId[selectedId] ?? [] : [];
@@ -547,24 +550,28 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
       data-figma-frame="2:4671"
     >
       <ReplicaBiHeader uiMode={uiMode} onUiModeChange={setUiMode} onBackToHome={onBackToHome} />
-      <ReplicaToolbar activeRail={leftRailPanel} onRailChange={setLeftRailPanel} uiMode={uiMode} />
+      {!isFullCanvasTemplate ? (
+        <ReplicaToolbar activeRail={leftRailPanel} onRailChange={setLeftRailPanel} uiMode={uiMode} />
+      ) : null}
 
       <div className="flex min-h-0 flex-1 w-full shrink-0">
-        <ReplicaLeftLibrary
-          panel={leftRailPanel}
-          templates={TEMPLATES}
-          currentTemplateIdx={templateIdx}
-          templateEntries={templateToolbarEntries}
-          blankTemplateIndex={BLANK_TEMPLATE_INDEX}
-          onApplyTemplate={applyTemplate}
-          onOpenTemplateMarketFull={() => setMarketOpen(true)}
-          onOpenDatasetReplace={() => setDatasetReplaceOpen(true)}
-          onOpenQueryConditionModal={(kind) => {
-            setQueryModalKind(kind);
-            setQueryModalOpen(true);
-          }}
-          onLibraryPointerDragStart={onLibraryPointerDragStart}
-        />
+        {!isFullCanvasTemplate ? (
+          <ReplicaLeftLibrary
+            panel={leftRailPanel}
+            templates={TEMPLATES}
+            currentTemplateIdx={templateIdx}
+            templateEntries={templateToolbarEntries}
+            blankTemplateIndex={BLANK_TEMPLATE_INDEX}
+            onApplyTemplate={applyTemplate}
+            onOpenTemplateMarketFull={() => setMarketOpen(true)}
+            onOpenDatasetReplace={() => setDatasetReplaceOpen(true)}
+            onOpenQueryConditionModal={(kind) => {
+              setQueryModalKind(kind);
+              setQueryModalOpen(true);
+            }}
+            onLibraryPointerDragStart={onLibraryPointerDragStart}
+          />
+        ) : null}
         <ReplicaCanvas
           preset={preset}
           dataset={dataset}
@@ -584,33 +591,37 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
           filterState={filterState}
           onFilterChange={onCustomerFilterChange}
           onFilterQuery={bumpAllWidgetMockData}
-          onReorderWidgets={onReorderWidgets}
-          onDeleteWidget={onDeleteWidget}
+          onReorderWidgets={isFullCanvasTemplate ? undefined : onReorderWidgets}
+          onDeleteWidget={isFullCanvasTemplate ? undefined : onDeleteWidget}
+          hideGlobalFilterBar={isFullCanvasTemplate}
+          hideWidgetToolbar={isFullCanvasTemplate}
         />
-        <ReplicaRightPanel
-          tab={rightTab}
-          onTab={setRightTab}
-          uiMode={uiMode}
-          selected={selected}
-          dataset={dataset}
-          primaryMeasure={dataPanelPrimaryMeasure}
-          onPrimaryMeasure={onPrimaryMeasureFromPanel}
-          slotBindings={slotBindings}
-          onAssignSlot={onAssignSlot}
-          onClearSlot={onClearSlot}
-          onRemoveSlotField={onRemoveSlotField}
-          filterFields={filterFieldsForSelected}
-          onAddFilterField={onAddFilterField}
-          onRemoveFilterField={onRemoveFilterField}
-          onClearFilterFields={onClearFilterFields}
-          onDataUpdate={bumpMockData}
-          allDatasets={allDatasets}
-          usedDatasetTemplateIds={usedDatasetTemplateIds}
-          onSelectDataPanelDataset={setDataPanelDatasetId}
-          onApplyLibraryChart={onApplyLibraryChart}
-          autoUpdate={autoUpdate}
-          onAutoUpdateChange={setAutoUpdate}
-        />
+        {!isFullCanvasTemplate ? (
+          <ReplicaRightPanel
+            tab={rightTab}
+            onTab={setRightTab}
+            uiMode={uiMode}
+            selected={selected}
+            dataset={dataset}
+            primaryMeasure={dataPanelPrimaryMeasure}
+            onPrimaryMeasure={onPrimaryMeasureFromPanel}
+            slotBindings={slotBindings}
+            onAssignSlot={onAssignSlot}
+            onClearSlot={onClearSlot}
+            onRemoveSlotField={onRemoveSlotField}
+            filterFields={filterFieldsForSelected}
+            onAddFilterField={onAddFilterField}
+            onRemoveFilterField={onRemoveFilterField}
+            onClearFilterFields={onClearFilterFields}
+            onDataUpdate={bumpMockData}
+            allDatasets={allDatasets}
+            usedDatasetTemplateIds={usedDatasetTemplateIds}
+            onSelectDataPanelDataset={setDataPanelDatasetId}
+            onApplyLibraryChart={onApplyLibraryChart}
+            autoUpdate={autoUpdate}
+            onAutoUpdateChange={setAutoUpdate}
+          />
+        ) : null}
       </div>
 
       {pointerGhost && (

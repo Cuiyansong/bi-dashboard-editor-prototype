@@ -8,6 +8,7 @@ import type { FieldSlotBindings } from "./ReplicaRightPanel";
 import { StrategyCohortTable } from "./StrategyCohortTable";
 import { MetricBreakdownTreeView } from "./MetricBreakdownTreeView";
 import { InsuranceCockpitBoardCard } from "./InsuranceCockpitBoardCard";
+import { SelfServiceQueryBoardCard } from "./SelfServiceQueryBoardCard";
 
 function bindingHintLine(w: CanvasWidget, slotBindings: FieldSlotBindings): string {
   const kind = getChartConfigKind(w);
@@ -364,6 +365,9 @@ export function WidgetBody({
   if (w.replicaLayout === "compoundQuery") {
     const rowLabels: [string, string] = [dim0, dim1];
     return <CompoundQueryCard w={w} rowLabels={rowLabels} />;
+  }
+  if (w.replicaLayout === "selfServiceQuery") {
+    return <SelfServiceQueryBoardCard w={w} hint={hint || undefined} />;
   }
   if (w.replicaLayout === "metricBreakdownTree") {
     return (

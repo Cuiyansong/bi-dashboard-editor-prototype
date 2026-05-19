@@ -60,6 +60,10 @@ export type ReplicaCanvasProps = {
   onReorderWidgets?: (fromIndex: number, toIndex: number) => void;
   /** 从卡片「更多」菜单删除组件 */
   onDeleteWidget?: (widgetId: string) => void;
+  /** 全画布形态：隐藏看板级筛选卡片 */
+  hideGlobalFilterBar?: boolean;
+  /** 全画布形态：隐藏图表自带的拖拽 / 局部筛选工具栏 */
+  hideWidgetToolbar?: boolean;
 };
 
 function cardMinHeight(w: CanvasWidget): number {
@@ -70,6 +74,7 @@ function cardMinHeight(w: CanvasWidget): number {
   if (w.replicaLayout === "metricBreakdownTree") return 340;
   if (w.replicaLayout === "insuranceCockpitBoard") return 560;
   if (w.replicaLayout === "compoundQuery") return 220;
+  if (w.replicaLayout === "selfServiceQuery") return 640;
   if (w.replicaLayout === "orgProgressBoard") return 220;
   if (w.replicaLayout === "customerTagTable") return 240;
   if (w.type === "liquid") return 220;
@@ -98,6 +103,8 @@ export function ReplicaCanvas({
   onFilterQuery,
   onReorderWidgets,
   onDeleteWidget,
+  hideGlobalFilterBar = false,
+  hideWidgetToolbar = false,
 }: ReplicaCanvasProps) {
   const dimensionLabels = dataset.dimensions.map((d) => d.label);
   const [reorderHoverIndex, setReorderHoverIndex] = useState<number | null>(
@@ -106,6 +113,7 @@ export function ReplicaCanvas({
 
   const isCustomerBizTemplate = preset?.id === "customer-biz";
   const isProductStoreTemplate = preset?.id === "product-store";
+  const isFullCanvas = hideGlobalFilterBar && hideWidgetToolbar;
 
   const handleDragStart = useCallback(
     (index: number) => (e: React.DragEvent) => {
@@ -145,7 +153,9 @@ export function ReplicaCanvas({
 
   return (
     <main
-      className="relative flex h-full min-h-0 w-[1255px] shrink-0 flex-col overflow-hidden"
+      className={`relative flex h-full min-h-0 flex-col overflow-hidden ${
+        isFullCanvas ? "min-w-0 flex-1" : "w-[1255px] shrink-0"
+      }`}
       data-figma-node="2:4788"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -226,7 +236,7 @@ export function ReplicaCanvas({
               ) : null}
             </h1>
           </div>
-          {isCustomerBizTemplate && (
+          {!hideGlobalFilterBar && isCustomerBizTemplate && (
             <TemplateFilterBar
               values={filterState}
               filters={CUSTOMER_FILTER_DEFS}
@@ -234,7 +244,7 @@ export function ReplicaCanvas({
               onQuery={onFilterQuery}
             />
           )}
-          {isProductStoreTemplate && (
+          {!hideGlobalFilterBar && isProductStoreTemplate && (
             <TemplateFilterBar
               values={filterState}
               filters={PRODUCT_FILTER_DEFS}
@@ -243,7 +253,9 @@ export function ReplicaCanvas({
             />
           )}
           <div
-            className="relative mx-auto grid w-full max-w-[1247px] gap-3 px-1"
+            className={`relative mx-auto grid w-full gap-3 px-1 ${
+              isFullCanvas ? "" : "max-w-[1247px]"
+            }`}
             style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
             data-canvas-grid
             onClick={(e) => e.stopPropagation()}
@@ -300,7 +312,7 @@ export function ReplicaCanvas({
                   } ${highlightDrop ? "ring-2 ring-primary/50" : ""} ${w.colSpan === 2 ? "col-span-2" : ""}`}
                   style={{ minHeight: cardMinHeight(w) }}
                 >
-                  {onReorderWidgets || onDeleteWidget ? (
+                  {!hideWidgetToolbar && (onReorderWidgets || onDeleteWidget) ? (
                     <div
                       className={`flex items-stretch border-b border-black/[0.06] bg-neutral-50/90 ${onReorderWidgets ? "" : "justify-end"}`}
                       onClick={(e) => e.stopPropagation()}
@@ -325,10 +337,9 @@ export function ReplicaCanvas({
                       ) : null}
                     </div>
                   ) : null}
-                  <ChartFilterToolbar
-                    values={filterState}
-                    onChange={onFilterChange}
-                  />
+                  {hideWidgetToolbar ? null : (
+                    <ChartFilterToolbar values={filterState} onChange={onFilterChange} />
+                  )}
                   <div
                     role="button"
                     tabIndex={0}

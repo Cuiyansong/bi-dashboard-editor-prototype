@@ -132,6 +132,8 @@ const ORG_PROGRESS_BOARD_SLOTS: FieldSlotDef[] = [];
 
 const COMPOUND_QUERY_SLOTS: FieldSlotDef[] = [];
 
+const SELF_SERVICE_QUERY_SLOTS: FieldSlotDef[] = [];
+
 const INSURANCE_COCKPIT_BOARD_SLOTS: FieldSlotDef[] = [];
 
 const CUSTOMER_TAG_TABLE_SLOTS: FieldSlotDef[] = [
@@ -147,6 +149,7 @@ export function getFieldSlotsForWidget(chartKind: ChartConfigKind, replicaLayout
   if (replicaLayout === "metricBreakdownTree") return METRIC_BREAKDOWN_SLOTS;
   if (replicaLayout === "orgProgressBoard") return ORG_PROGRESS_BOARD_SLOTS;
   if (replicaLayout === "compoundQuery") return COMPOUND_QUERY_SLOTS;
+  if (replicaLayout === "selfServiceQuery") return SELF_SERVICE_QUERY_SLOTS;
   if (replicaLayout === "insuranceCockpitBoard") return INSURANCE_COCKPIT_BOARD_SLOTS;
   if (replicaLayout === "customerTagTable") return CUSTOMER_TAG_TABLE_SLOTS;
   return slotsForChartKind(chartKind);

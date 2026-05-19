@@ -1,0 +1,1 @@
+const block=['const COMMON_TABS = [',...data.COMMON.map(x=  '+JSON.stringify(x)+','),'] as const;','','const LEVEL1_TABS = COMMON_TABS;','const LEVEL2_TABS = [\" "\u540c\u73af\u6bd4\, ...COMMON_TABS] as const;','','const PENDING_FIELDS = [',...data.PENDING.map(x=  '+JSON.stringify(x)+','),'];','',].join('\n');

@@ -21,7 +21,8 @@ export interface CanvasWidget {
     | "orgProgressBoard"
     | "customerTagTable"
     | "compoundQuery"
-    | "insuranceCockpitBoard";
+    | "insuranceCockpitBoard"
+    | "selfServiceQuery";
 }
 
 export interface TemplatePreset {
@@ -118,6 +119,24 @@ export const TEMPLATES: TemplatePreset[] = [
       { id: "w2", type: "kpi", title: "覆盖客群", colSpan: 1 },
       { id: "w3", type: "table", title: "规则列表", colSpan: 2 },
       { id: "w4", type: "bar", title: "上线前后对比", colSpan: 2 },
+    ],
+  },
+  {
+    id: "self-service-query",
+    name: "自助查询",
+    pageTitle: "自助查询",
+    description: "维度选取 + 一/二层指标选取，自定义交叉表查询",
+    dashboardTabs: ["指标查询"],
+    accent: "#2563EB",
+    widgets: [
+      {
+        id: "w_ssq",
+        type: "table",
+        title: "自助查询",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "自助查询",
+      },
     ],
   },
   {

@@ -24,6 +24,7 @@ const LABEL_KEYS: { kind: ChartConfigKind; pattern: RegExp }[] = [
 export function getChartConfigKind(w: CanvasWidget | null): ChartConfigKind {
   if (!w) return "default";
   if (w.replicaLayout === "compoundQuery") return "default";
+  if (w.replicaLayout === "selfServiceQuery") return "default";
   if (w.replicaLayout === "insuranceCockpitBoard") return "default";
   const text = `${w.libraryLabel ?? ""} ${w.title}`;
   for (const { kind, pattern } of LABEL_KEYS) {

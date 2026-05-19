@@ -1,0 +1,3 @@
+const fs=require("fs");
+const data=JSON.parse(fs.readFileSync("strings.json","utf8"));
+let s=fs.readFileSync("src/replica/SelfServiceQueryBoardCard.tsx","utf8").replace(/^\uFEFF/,"");const block=[q+const COMMON_TABS = [+q,...data.COMMON.map(x=>q+  +q+JSON.stringify(x)+q+,+q),q+]+q+ as const;+q,q,q+const LEVEL1_TABS = COMMON_TABS;+q,q+const LEVEL2_TABS = [+q+\u540c\u73af\u6bd4+q+, ...COMMON_TABS] as const;+q,q,q+const PENDING_FIELDS = [+q,...data.PENDING.map(x=>q+  +q+JSON.stringify(x)+q+,+q),q+];+q,q,].join(String.fromCharCode(10));
