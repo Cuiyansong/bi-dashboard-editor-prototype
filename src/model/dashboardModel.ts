@@ -37,24 +37,24 @@ export interface TemplatePreset {
 
 /** 顺序：驾驶舱、通报与考核、客户经营分析、策略编辑 */
 export const TEMPLATES: TemplatePreset[] = [
-  {
-    id: "cockpit",
-    name: "驾驶舱看板",
-    pageTitle: "银行驾驶舱",
-    description: "银行业务总览、KPI 达成、分公司排行与核心指标监控（含指标拆解）",
-    dashboardTabs: ["首页", "项目进度", "核心信息事项"],
-    accent: "#1677ff",
-    widgets: [
-      { id: "w1", type: "kpi", title: "银行驾驶舱总览", colSpan: 2, replicaLayout: "insuranceCockpitBoard" },
-      { id: "w2", type: "kpi", title: "指标拆解树", colSpan: 2, replicaLayout: "metricBreakdownTree", libraryLabel: "指标拆解树" },
-    ],
-  },
+  // {
+  //   id: "cockpit",
+  //   name: "驾驶舱看板",
+  //   pageTitle: "银行驾驶舱",
+  //   description: "银行业务总览、KPI 达成、分公司排行与核心指标监控（含指标拆解）",
+  //   dashboardTabs: ["首页", "项目进度", "核心信息事项"],
+  //   accent: "#1677ff",
+  //   widgets: [
+  //     { id: "w1", type: "kpi", title: "银行驾驶舱总览", colSpan: 2, replicaLayout: "insuranceCockpitBoard" },
+  //     { id: "w2", type: "kpi", title: "指标拆解树", colSpan: 2, replicaLayout: "metricBreakdownTree", libraryLabel: "指标拆解树" },
+  //   ],
+  // },
   {
     id: "report-kpi",
-    name: "通报与考核",
-    pageTitle: "通报与考核",
-    description: "通报、KPI 考核与排名视图占位",
-    dashboardTabs: ["通报", "KPI 考核", "排名"],
+    name: "考核分析",
+    pageTitle: "考核分析",
+    description: "KPI 考核与排名视图占位",
+    dashboardTabs: ["通报报表", "考核报表"],
     accent: "#fa8c16",
     widgets: [
       { id: "w1", type: "bar", title: "部门排名", colSpan: 2 },
@@ -66,9 +66,9 @@ export const TEMPLATES: TemplatePreset[] = [
   },
   {
     id: "customer-biz",
-    name: "客户经营分析",
-    pageTitle: "客户经营分析",
-    description: "经营总览、客户分层与产品渗透占位",
+    name: "客户分析",
+    pageTitle: "客户分析",
+    description: "客户经营总览、客户分层与产品渗透占位",
     dashboardTabs: ["经营总览", "客户分层", "产品渗透"],
     accent: "#08979c",
     widgets: [
@@ -80,11 +80,31 @@ export const TEMPLATES: TemplatePreset[] = [
     ],
   },
   {
+    id: "product-store",
+    name: "产品分析",
+    pageTitle: "产品分析",
+    description: "产品总览、产品矩阵与产品渗透分析",
+    dashboardTabs: ["总览", "产品矩阵", "产品渗透分析"],
+    accent: "#1677ff",
+    widgets: [
+      {
+        id: "w1",
+        type: "kpi",
+        title: "产品总览",
+        colSpan: 2,
+        replicaLayout: "insuranceCockpitBoard",
+      },
+      { id: "w2", type: "line", title: "周期趋势", colSpan: 2 },
+      { id: "w3", type: "table", title: "产品矩阵", colSpan: 2 },
+      { id: "w4", type: "bar", title: "产品渗透分析", colSpan: 2},
+    ],
+  },
+  {
     id: "strategy",
-    name: "策略编辑",
-    pageTitle: "策略编辑",
-    description: "营销策略、规则版本与影响评估",
-    dashboardTabs: ["客群策略全周期追踪", "规则与版本", "影响评估"],
+    name: "效益分析",
+    pageTitle: "效益分析",
+    description: "营销效益策略分析、规则版本与影响评估",
+    dashboardTabs: ["客户PA", "机构PA", "客群PA", "客层PA"],
     accent: "#722ed1",
     widgets: [
       {

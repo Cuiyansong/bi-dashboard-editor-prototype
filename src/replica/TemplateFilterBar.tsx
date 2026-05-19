@@ -1,14 +1,15 @@
-import { CUSTOMER_FILTER_DEFS, type CustomerFilterState } from "../model/customerFilters";
+import { CUSTOMER_FILTER_DEFS, CustomerFilterDef, type CustomerFilterState } from "../model/customerFilters";
 import { GlobalFilterDimensionPanel } from "./GlobalFilterDimensionPanel";
 
 export type TemplateFilterBarProps = {
   values: CustomerFilterState;
+  filters: CustomerFilterDef[];
   onChange: (filterId: keyof CustomerFilterState, value: string[]) => void;
   onQuery?: () => void;
 };
 
 /** 看板级全局筛选：紧凑平铺（仍为多选芯片，不占过多纵向空间） */
-export function TemplateFilterBar({ values, onChange, onQuery }: TemplateFilterBarProps) {
+export function TemplateFilterBar({ values, filters, onChange, onQuery }: TemplateFilterBarProps) {
   return (
     <div className="mb-3 px-1">
       <section
@@ -29,7 +30,7 @@ export function TemplateFilterBar({ values, onChange, onQuery }: TemplateFilterB
         </div>
 
         <div className="flex flex-col gap-2.5">
-          {CUSTOMER_FILTER_DEFS.map((f, i) => (
+          {(filters || []).map((f, i) => (
             <GlobalFilterDimensionPanel
               key={f.id}
               id={f.id}

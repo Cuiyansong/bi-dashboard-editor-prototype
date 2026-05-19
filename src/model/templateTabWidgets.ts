@@ -17,7 +17,13 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
     [
       { id: "cb1_a", type: "kpi", title: "战略客户占比", colSpan: 1 },
       { id: "cb1_b", type: "kpi", title: "长尾客户数", colSpan: 1 },
-      { id: "cb1_tags", type: "table", title: "客户标签分布", colSpan: 2, replicaLayout: "customerTagTable" },
+      {
+        id: "cb1_tags",
+        type: "table",
+        title: "客户标签分布",
+        colSpan: 2,
+        replicaLayout: "customerTagTable",
+      },
       { id: "cb1_c", type: "bar", title: "分层收入结构", colSpan: 2 },
       { id: "cb1_d", type: "table", title: "分层客户清单", colSpan: 2 },
       { id: "cb1_e", type: "line", title: "分层迁徙趋势", colSpan: 2 },
@@ -95,7 +101,13 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
   ],
   "report-kpi": [
     [
-      { id: "rp0_org", type: "table", title: "各机构进度与达成", colSpan: 2, replicaLayout: "orgProgressBoard" },
+      {
+        id: "rp0_org",
+        type: "table",
+        title: "各机构进度与达成",
+        colSpan: 2,
+        replicaLayout: "orgProgressBoard",
+      },
       { id: "rp0_a", type: "bar", title: "部门排名", colSpan: 2 },
       { id: "rp0_b", type: "liquid", title: "达成率", colSpan: 1 },
       { id: "rp0_c", type: "kpi", title: "考核得分", colSpan: 1 },
@@ -117,6 +129,7 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
       { id: "rp2_e", type: "line", title: "排名变动趋势", colSpan: 2 },
     ],
   ],
+  "product-store": [],
 };
 
 /** 与模板 Tab 数对齐的初始画布；无定制表时按 Tab 克隆 widgets 并改写 id */
@@ -125,5 +138,7 @@ export function getInitialTabWidgets(preset: TemplatePreset): CanvasWidget[][] {
   if (custom && custom.length === preset.dashboardTabs.length) {
     return custom.map((row) => row.map((w) => ({ ...w })));
   }
-  return preset.dashboardTabs.map((_, ti) => preset.widgets.map((w) => ({ ...w, id: `${w.id}__t${ti}` })));
+  return preset.dashboardTabs.map((_, ti) =>
+    preset.widgets.map((w) => ({ ...w, id: `${w.id}__t${ti}` })),
+  );
 }
