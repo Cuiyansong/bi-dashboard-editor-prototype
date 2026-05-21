@@ -6,10 +6,15 @@
  */
 const base = "https://www.figma.com/api/mcp/asset";
 
-const useLocal = import.meta.env.VITE_FIGMA_ASSETS_LOCAL === "1";
+/** Local public copy first, then remote MCP (URLs expire ~7d). */
+export function figmaAssetSources(uuid: string): string[] {
+  const local = `/figma/${uuid}.png`;
+  const remote = `${base}/${uuid}`;
+  return [local, remote];
+}
 
 function mcp(uuid: string): string {
-  return useLocal ? `/figma/${uuid}.png` : `${base}/${uuid}`;
+  return figmaAssetSources(uuid)[0]!;
 }
 
 export const figmaAssets = {

@@ -1,3 +1,4 @@
+import { FigmaAssetImage } from "./FigmaAssetImage";
 import { figmaAssets } from "./figmaAssets";
 import type { EditorUiMode } from "./editorUiMode";
 
@@ -56,17 +57,17 @@ export function ReplicaBiHeader({
             ← 返回首页
           </button>
         ) : null}
-        <img src={a.v} alt="" className="h-6 w-6 shrink-0 object-contain" />
+        <FigmaAssetImage src={a.v} className="h-6 w-6 shrink-0 object-contain" />
         <div className="min-w-0">
           <div className="truncate font-['Inter',sans-serif] text-sm font-medium leading-tight text-figma-text">创建模板功能</div>
           <div className="truncate font-['Inter',sans-serif] text-[11px] leading-tight text-figma-sub">仅在当前页面有效</div>
         </div>
         <span className="mx-1 h-4 w-px shrink-0 bg-figma-line" />
         <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-black/[0.04]">
-          <img src={a.v1} alt="" className="h-4 w-4 object-contain" />
+          <FigmaAssetImage src={a.v1} className="h-4 w-4 object-contain" />
         </button>
         <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-black/[0.04]">
-          <img src={a.v2} alt="" className="h-4 w-4 object-contain" />
+          <FigmaAssetImage src={a.v2} className="h-4 w-4 object-contain" />
         </button>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -96,7 +97,7 @@ export function ReplicaBiHeader({
           保存并发布
         </button>
         <button type="button" className="flex h-8 w-8 items-center justify-center rounded hover:bg-black/[0.04]">
-          <img src={a.v8} alt="" className="h-4 w-4 object-contain" />
+          <FigmaAssetImage src={a.v8} className="h-4 w-4 object-contain" />
         </button>
       </div>
     </header>

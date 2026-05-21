@@ -1,4 +1,4 @@
-import { figmaAssets } from "./figmaAssets";
+import { FigmaAssetImage } from "./FigmaAssetImage";
 
 /** 主内容区极轻背景（无大图） */
 export function HomeSubtleBackground() {
@@ -22,7 +22,7 @@ type HomeHeroBannerProps = {
 
 /** 顶部 Banner：渐变条 + 右侧裁切看板预览（尺寸受控） */
 export function HomeHeroBanner({ titleId }: HomeHeroBannerProps) {
-  const snapshot = figmaAssets.canvas.snapshot;
+  const snapshotUuid = "35387b90-5209-4206-aa41-2927259ddb13";
 
   return (
     <section
@@ -62,16 +62,31 @@ export function HomeHeroBanner({ titleId }: HomeHeroBannerProps) {
           className="relative w-[min(42%,520px)] shrink-0 border-l border-white/10 bg-[#0F172A]/20"
         >
           <div className="absolute inset-0 bg-gradient-to-l from-[#1E40AF]/80 via-transparent to-transparent" />
-          <img
-            alt=""
-            src={snapshot}
-            className="h-full w-full object-cover object-left-top"
+          <BannerPreviewFallback className="absolute inset-0" />
+          <FigmaAssetImage
+            uuid={snapshotUuid}
+            className="absolute inset-0 h-full w-full object-cover object-left-top"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1E3A8A]/50 via-transparent to-transparent" />
           <MiniDashboardFrame className="absolute bottom-3 right-4 h-[72px] w-[120px] rounded-lg border border-white/25 bg-white/10 shadow-lg backdrop-blur-sm" />
         </div>
       </div>
     </section>
+  );
+}
+
+/** 看板预览图加载失败时的装饰底图 */
+function BannerPreviewFallback({ className = "" }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={`${className} bg-gradient-to-br from-[#1E3A8A] via-[#2563EB] to-[#0F172A]`}
+      style={{
+        backgroundImage:
+          "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
+        backgroundSize: "20px 20px",
+      }}
+    />
   );
 }
 

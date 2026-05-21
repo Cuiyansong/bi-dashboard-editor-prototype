@@ -1,4 +1,4 @@
-import { figmaAssets } from "./figmaAssets";
+import { FigmaAssetImage } from "./FigmaAssetImage";
 import { useCallback, useState, type Ref } from "react";
 import {
   CanvasWidget,
@@ -21,7 +21,9 @@ import {
 import { WidgetCanvasMoreMenu } from "./WidgetCanvasMoreMenu";
 import { ChartFilterToolbar } from "./ChartFilterToolbar";
 
-const c = figmaAssets.canvas;
+const CANVAS_BG_LOWER = "5ed299fb-3bac-4c7c-83b4-b616f8076498";
+const CANVAS_BG_UPPER = "c0c13c83-4e2c-4d77-ae55-29856159fc0e";
+const CANVAS_WATERMARK = "8e25ee18-fdc0-4ce2-b70e-d450e920ce2f";
 
 export type ReplicaCanvasProps = {
   preset: TemplatePreset;
@@ -155,18 +157,23 @@ export function ReplicaCanvas({
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-figma-grey-98" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(46,116,255,0.08) 0%, transparent 60%), radial-gradient(ellipse 70% 40% at 0% 0%, rgba(30,64,175,0.06) 0%, transparent 55%)",
+          }}
+        />
         <div className="absolute inset-0 overflow-hidden">
-          <img
-            alt=""
+          <FigmaAssetImage
+            uuid={CANVAS_BG_LOWER}
             className="absolute bottom-0 left-0 h-[58.2%] w-full max-w-none object-cover"
-            src={c.bgLower}
           />
         </div>
         <div className="absolute inset-0 overflow-hidden">
-          <img
-            alt=""
+          <FigmaAssetImage
+            uuid={CANVAS_BG_UPPER}
             className="absolute left-0 top-0 h-[69.06%] w-full max-w-none object-cover"
-            src={c.bgUpper}
           />
         </div>
       </div>
@@ -355,10 +362,9 @@ export function ReplicaCanvas({
           </div>
 
           <div className="pointer-events-none absolute bottom-6 right-10 opacity-40">
-            <img
-              alt=""
+            <FigmaAssetImage
+              uuid={CANVAS_WATERMARK}
               className="h-16 w-auto max-w-[120px] object-contain"
-              src={c.watermark}
             />
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { FigmaAssetImage } from "./FigmaAssetImage";
 import { figmaAssets } from "./figmaAssets";
 import type { EditorUiMode } from "./editorUiMode";
 import { isComplexEditorMode } from "./editorUiMode";
@@ -34,7 +35,7 @@ export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "simple" }: 
             onClick={() => onRailChange("templates")}
             className={`${toolbarBtnBase} ${activeRail === "templates" ? toolbarBtnSelected : toolbarBtnIdle}`}
           >
-            <img src={t.v} alt="" className="h-3.5 w-3.5 object-contain" />
+            <FigmaAssetImage src={t.v} className="h-3.5 w-3.5 object-contain" />
             从模板市场选择
             <span className="text-[10px] opacity-80">{activeRail === "templates" ? "▴" : "▾"}</span>
           </button>
@@ -46,7 +47,7 @@ export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "simple" }: 
             onClick={() => onRailChange("charts")}
             className={`${toolbarBtnBase} ${activeRail === "charts" ? toolbarBtnSelected : toolbarBtnIdle}`}
           >
-            <img src={t.v} alt="" className="h-3.5 w-3.5 object-contain" />
+            <FigmaAssetImage src={t.v} className="h-3.5 w-3.5 object-contain" />
             添加图表
             <span className="text-[10px] opacity-80">{activeRail === "charts" ? "▴" : "▾"}</span>
           </button>
@@ -58,7 +59,7 @@ export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "simple" }: 
             onClick={() => onRailChange("query")}
             className={`${toolbarBtnBase} ${activeRail === "query" ? toolbarBtnSelected : toolbarBtnIdle}`}
           >
-            <img src={t.v} alt="" className="h-3.5 w-3.5 object-contain" />
+            <FigmaAssetImage src={t.v} className="h-3.5 w-3.5 object-contain" />
             添加查询控件
             <span className="text-[10px] opacity-80">{activeRail === "query" ? "▴" : "▾"}</span>
           </button>
@@ -70,7 +71,7 @@ export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "simple" }: 
           <span className="mx-1 h-3 w-px bg-figma-line" />
           {chips.slice(0, 5).map((src, i) => (
             <button key={i} type="button" className="flex h-7 w-7 items-center justify-center rounded hover:bg-black/[0.04]">
-              <img src={src} alt="" className="h-3.5 w-3.5 object-contain opacity-80" />
+              <FigmaAssetImage src={src} className="h-3.5 w-3.5 object-contain opacity-80" />
             </button>
           ))}
           <span className="mx-1 h-3 w-px bg-figma-line" />
@@ -79,7 +80,7 @@ export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "simple" }: 
           </button>
           {chips.slice(5).map((src, i) => (
             <button key={`r-${i}`} type="button" className="flex h-7 w-7 items-center justify-center rounded hover:bg-black/[0.04]">
-              <img src={src} alt="" className="h-3.5 w-3.5 object-contain opacity-80" />
+              <FigmaAssetImage src={src} className="h-3.5 w-3.5 object-contain opacity-80" />
             </button>
           ))}
         </div>

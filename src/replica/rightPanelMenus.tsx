@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { CanvasWidget } from "../model/dashboardModel";
 import type { TemplateDatasetDef } from "../model/templateDatasets";
+import { FigmaAssetImage } from "./FigmaAssetImage";
 import { figmaAssets } from "./figmaAssets";
 import { LEFT_LIBRARY_CATALOG, type LeftLibraryItem } from "./leftLibraryCatalog";
 
@@ -167,12 +168,15 @@ export function ChartLibraryGrid({ selectedLabel, onPick, className = "" }: Char
                     }`}
                   >
                     <div className="relative size-[30px] shrink-0 overflow-hidden">
-                      <img
-                        alt=""
+                      <FigmaAssetImage
                         src={sprite}
-                        draggable={false}
                         className={`pointer-events-none max-w-none select-none ${it.spriteClass}`}
-                        style={{ WebkitUserDrag: "none" }}
+                        fallback={
+                          <div
+                            aria-hidden
+                            className="absolute inset-0 m-auto size-5 rounded bg-[#E0E7FF] ring-1 ring-primary/25"
+                          />
+                        }
                       />
                     </div>
                     <span className="max-w-[52px] text-center font-['Inter',sans-serif] text-[10.5px] leading-[17px] text-figma-text">

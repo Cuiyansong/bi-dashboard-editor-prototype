@@ -13,6 +13,7 @@ import { defaultPrimaryMeasureKey, getDatasetForTemplate, listRegisteredDatasets
 import { ReplicaBiHeader } from "./ReplicaBiHeader";
 import { DEFAULT_EDITOR_UI_MODE, type EditorUiMode } from "./editorUiMode";
 import { ReplicaCanvas } from "./ReplicaCanvas";
+import { FigmaAssetImage } from "./FigmaAssetImage";
 import { figmaAssets } from "./figmaAssets";
 import type { LeftLibraryItem } from "./leftLibraryCatalog";
 import { ReplicaLeftLibrary, type LeftRailPanel } from "./ReplicaLeftLibrary";
@@ -631,12 +632,15 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
           style={{ left: pointerGhost.x + 12, top: pointerGhost.y + 12 }}
         >
           <div className="relative size-[30px] shrink-0 overflow-hidden">
-            <img
-              alt=""
+            <FigmaAssetImage
               src={figmaAssets.leftSprite}
-              draggable={false}
               className={`pointer-events-none max-w-none select-none ${pointerGhost.spriteClass}`}
-              style={{ WebkitUserDrag: "none" }}
+              fallback={
+                <div
+                  aria-hidden
+                  className="absolute inset-0 m-auto size-5 rounded bg-[#E0E7FF] ring-1 ring-primary/25"
+                />
+              }
             />
           </div>
           <span className="max-w-[52px] select-none px-0.5 text-center font-['Inter',sans-serif] text-[10.8px] leading-[18.9px] text-figma-sub">

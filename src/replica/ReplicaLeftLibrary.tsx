@@ -1,3 +1,4 @@
+import { FigmaAssetImage } from "./FigmaAssetImage";
 import { figmaAssets } from "./figmaAssets";
 import { LEFT_LIBRARY_CATALOG } from "./leftLibraryCatalog";
 import type { TemplatePreset, WidgetType } from "../model/dashboardModel";
@@ -67,19 +68,19 @@ export function ReplicaLeftLibrary({
               type="button"
               className="flex h-[22px] w-[22px] items-center justify-center rounded p-1 hover:bg-black/[0.04]"
             >
-              <img src={ui.v} alt="" className="h-3.5 w-3.5 object-contain" draggable={false} />
+              <FigmaAssetImage src={ui.v} className="h-3.5 w-3.5 object-contain" />
             </button>
             <button
               type="button"
               className="flex h-[22px] w-[22px] items-center justify-center rounded p-1 hover:bg-black/[0.04]"
             >
-              <img src={ui.v1} alt="" className="h-3.5 w-3.5 object-contain" draggable={false} />
+              <FigmaAssetImage src={ui.v1} className="h-3.5 w-3.5 object-contain" />
             </button>
             <button
               type="button"
               className="flex h-[22px] w-[22px] items-center justify-center rounded p-1 hover:bg-black/[0.04]"
             >
-              <img src={ui.v2} alt="" className="h-3.5 w-3.5 object-contain" draggable={false} />
+              <FigmaAssetImage src={ui.v2} className="h-3.5 w-3.5 object-contain" />
             </button>
           </div>
         </div>
@@ -105,12 +106,15 @@ export function ReplicaLeftLibrary({
                       className="flex w-[52px] cursor-grab touch-none select-none flex-col items-center gap-[1px] rounded px-1 py-1 outline-none ring-primary/30 focus-visible:ring-2 active:cursor-grabbing hover:bg-figma-azure-6"
                     >
                       <div className="relative size-[30px] shrink-0 overflow-hidden">
-                        <img
-                          alt=""
+                        <FigmaAssetImage
                           src={sprite}
-                          draggable={false}
                           className={`pointer-events-none max-w-none select-none ${it.spriteClass}`}
-                          style={{ WebkitUserDrag: "none" }}
+                          fallback={
+                            <div
+                              aria-hidden
+                              className="absolute inset-0 m-auto size-5 rounded bg-[#E0E7FF] ring-1 ring-primary/25"
+                            />
+                          }
                         />
                       </div>
                       <span className="max-w-[52px] select-none text-center font-['Inter',sans-serif] text-[10.8px] leading-[18.9px] text-figma-sub">

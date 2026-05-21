@@ -1,6 +1,8 @@
 ﻿import { useMemo, useState } from "react";
 import type { CanvasWidget } from "../model/dashboardModel";
 import { CUST_TIER_OPTIONS, SEVEN_COHORT_OPTIONS } from "../model/customerFilters";
+import { ChartInsertPanel, InsertedChartsGallery } from "./ChartInsertSection";
+import type { InsertedChart } from "./chartInsertConfig";
 import {
   CUSTOMER_DIMENSION_GROUPS,
   CUSTOMER_INDICATOR_FIELDS,
@@ -775,6 +777,7 @@ function QueryHeader({
   l1Count,
   l2Count,
   effectiveFieldCount,
+  insertedChartCount,
   onReset,
 }: {
   headlineText: string;
@@ -787,6 +790,7 @@ function QueryHeader({
   l1Count: number;
   l2Count: number;
   effectiveFieldCount: number;
+  insertedChartCount: number;
   onReset: () => void;
 }) {
   return (
@@ -838,6 +842,9 @@ function QueryHeader({
         <SummaryChip label="一层指标" value={l1Count} />
         <SummaryChip label="二层指标" value={l2Count} />
         <SummaryChip label="生效字段" value={effectiveFieldCount} tone="primary" />
+        {insertedChartCount > 0 ? (
+          <SummaryChip label="已插入看板" value={insertedChartCount} tone="accent" />
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button
@@ -1130,6 +1137,7 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
   const [l2Fields, setL2Fields] = useState<Set<string>>(
     () => new Set<string>([...baseFields, ...YOY_FIELDS]),
   );
+  const [insertedCharts, setInsertedCharts] = useState<InsertedChart[]>([]);
 
   const handleReset = () => {
     if (isProductMode) {
@@ -1141,6 +1149,7 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
     }
     setL1Fields(new Set(baseFields));
     setL2Fields(new Set<string>([...baseFields, ...YOY_FIELDS]));
+    setInsertedCharts([]);
   };
 
   const effectiveFieldCount = useMemo(() => {
@@ -1148,6 +1157,11 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
     const yoyCount = YOY_FIELDS.filter((f) => l2Fields.has(f)).length;
     return sharedCount + yoyCount;
   }, [l1Fields, l2Fields, baseFields]);
+
+  const dimensionSelections = useMemo(
+    () => ({ products, tiers, cohorts, scenarios }),
+    [products, tiers, cohorts, scenarios],
+  );
 
   return (
     <div
@@ -1171,6 +1185,7 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
         l1Count={l1Fields.size}
         l2Count={l2Fields.size}
         effectiveFieldCount={effectiveFieldCount}
+        insertedChartCount={insertedCharts.length}
         onReset={handleReset}
       />
 
@@ -1218,6 +1233,18 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
             scenarios={scenarios}
             l1Fields={l1Fields}
             l2Fields={l2Fields}
+          />
+          <InsertedChartsGallery
+            charts={insertedCharts}
+            onRemove={(id) => setInsertedCharts((prev) => prev.filter((c) => c.id !== id))}
+          />
+          <ChartInsertPanel
+            analysisMode={analysisMode}
+            dimensionSelections={dimensionSelections}
+            l1Fields={l1Fields}
+            l2Fields={l2Fields}
+            insertedCount={insertedCharts.length}
+            onInsert={(chart) => setInsertedCharts((prev) => [...prev, chart])}
           />
         </div>
       </div>
