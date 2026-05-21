@@ -6,3 +6,8 @@ dist
 .env.*
 
 pnpm-lock.yaml
+
+# Local helper scripts
+git-sync.cmd
+__build_tmp.cmd
+_git_push.cmd

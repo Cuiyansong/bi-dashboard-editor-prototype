@@ -1,10 +1,18 @@
 ﻿import { useMemo, useState } from "react";
 import type { CanvasWidget } from "../model/dashboardModel";
+import { CUST_TIER_OPTIONS, SEVEN_COHORT_OPTIONS } from "../model/customerFilters";
 import {
-  CUST_TIER_OPTIONS,
-  PRODUCT_NAME_OPTIONS,
-  SEVEN_COHORT_OPTIONS,
-} from "../model/customerFilters";
+  CUSTOMER_DIMENSION_GROUPS,
+  CUSTOMER_INDICATOR_FIELDS,
+  flattenProductOptions,
+  getIndicatorFieldsForTab,
+  LEVEL1_TABS,
+  LEVEL2_TABS,
+  PRODUCT_DIMENSION_GROUPS,
+  PRODUCT_INDICATOR_FIELDS,
+  SCENARIO_COHORT_OPTIONS,
+  YOY_FIELDS,
+} from "./selfServiceQueryConfig";
 
 const TOKEN = {
   primary: "#1E40AF",
@@ -24,51 +32,23 @@ const TOKEN = {
   negative: "#DC2626",
 } as const;
 
-const COMMON_TABS = [
-  "资金信息",
-  "风量信息",
-  "参与人信息",
-  "担保抵押物信息",
-  "待办信息",
-  "银行直查",
-  "财务收账信息",
-  "可视化新签情况",
-  "暂停信息导出",
-] as const;
-
-const LEVEL1_TABS = COMMON_TABS;
-const LEVEL2_TABS = ["同环比", ...COMMON_TABS] as const;
-
-const YOY_TAB_LABEL = "同环比";
-const YOY_FIELDS = ["同比", "环比", "占比"] as const;
-
-function getTabFields(tabLabel: string): readonly string[] {
-  return tabLabel === YOY_TAB_LABEL ? YOY_FIELDS : PENDING_FIELDS;
-}
-
-const PENDING_FIELDS = [
-  "成交价",
-  "定金金额（第二笔）",
-  "定金金额（第一笔）",
-  "定金总额",
-  "购房款/首付款（第二笔）",
-  "购房款/首付款（第一笔）",
-  "购房款总额",
-  "首付款总金额",
-  "尾款总金额",
-  "尾款金额（剩）",
-];
+type AnalysisMode = "customer" | "product";
 
 type MetricKind = "amount" | "share" | "yoy";
 
 const METRIC_KINDS: MetricKind[] = ["amount", "share", "yoy"];
 
 type PivotRow = {
-  cohort: string;
-  tier: string;
-  showCohort: boolean;
-  cohortRowSpan: number;
+  primary: string;
+  secondary: string;
+  tertiary: string;
+  showPrimary: boolean;
+  primaryRowSpan: number;
+  showSecondary: boolean;
+  secondaryRowSpan: number;
 };
+
+type DimColumn = { label: string; left: number; minWidth: number };
 
 function seed(...keys: (string | number)[]): number {
   let h = 2166136261;
@@ -82,74 +62,100 @@ function seed(...keys: (string | number)[]): number {
 }
 
 function isHighValueField(field: string): boolean {
-  return /总金额|购房款|成交价|尾款/.test(field);
+  return /余额|金额|客户数量|销量|购买/.test(field);
 }
 
-function cellAmount(cohort: string, tier: string, field: string): string {
-  const s = seed(cohort, tier, field, "amount");
+function cellAmount(rowKey: string, field: string): string {
+  const s = seed(rowKey, field, "amount");
+  if (field === "交易时间" || field === "到期日期") {
+    const y = 2024 + Math.floor(s * 2);
+    const m = String(Math.floor(s * 12) + 1).padStart(2, "0");
+    const d = String(Math.floor(s * 28) + 1).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  if (field === "存期") {
+    const months = [3, 6, 12, 24, 36][Math.floor(s * 5)] ?? 12;
+    return `${months}个月`;
+  }
   let v = 200 + s * 4800;
   if (isHighValueField(field)) v *= 1.5 + s * 0.5;
+  if (field === "销售笔数" || field === "客户数量") {
+    return String(Math.round(50 + s * 950));
+  }
   v = Math.round(v / 100) * 100;
   return v.toLocaleString("zh-CN");
 }
 
-function cellShare(cohort: string, tier: string, field: string): string {
-  const s = seed(cohort, tier, field, "share");
+function cellShare(rowKey: string, field: string): string {
+  const s = seed(rowKey, field, "share");
   return `${(s * 24 + 1).toFixed(1)}%`;
 }
 
-function cellYoy(cohort: string, tier: string, field: string): { text: string; value: number } {
-  const s = seed(cohort, tier, field, "yoy");
+function cellYoy(rowKey: string, field: string): { text: string; value: number } {
+  const s = seed(rowKey, field, "yoy");
   const value = (s - 0.4) * 60;
   const sign = value > 0 ? "+" : "";
   return { text: `${sign}${value.toFixed(1)}%`, value };
 }
 
+function pivotRowKey(row: PivotRow): string {
+  return [row.primary, row.secondary, row.tertiary].filter(Boolean).join("|");
+}
+
 function cellValue(
-  cohort: string,
-  tier: string,
+  row: PivotRow,
   field: string,
   metric: MetricKind,
 ): { display: string; yoyValue?: number } {
-  if (metric === "amount") return { display: cellAmount(cohort, tier, field) };
-  if (metric === "share") return { display: cellShare(cohort, tier, field) };
-  const yoy = cellYoy(cohort, tier, field);
+  const key = pivotRowKey(row);
+  if (metric === "amount") return { display: cellAmount(key, field) };
+  if (metric === "share") return { display: cellShare(key, field) };
+  const yoy = cellYoy(key, field);
   return { display: yoy.text, yoyValue: yoy.value };
 }
 
-function orderedSelectedFields(selected: Set<string>): string[] {
-  return [
-    ...PENDING_FIELDS.filter((f) => selected.has(f)),
-    ...YOY_FIELDS.filter((f) => selected.has(f)),
-  ];
+function buildProductPivotRows(products: Set<string>): PivotRow[] {
+  const list = flattenProductOptions().filter((p) => products.has(p));
+  return list.map((primary) => ({
+    primary,
+    secondary: "",
+    tertiary: "",
+    showPrimary: true,
+    primaryRowSpan: 1,
+    showSecondary: false,
+    secondaryRowSpan: 1,
+  }));
 }
 
-function buildPivotRows(
-  cohorts: Set<string>,
+function buildCustomerPivotRows(
   tiers: Set<string>,
-  primaryOptions: readonly string[],
-  withTier: boolean,
+  cohorts: Set<string>,
+  scenarios: Set<string>,
 ): PivotRow[] {
-  const cohortList = primaryOptions.filter((c) => cohorts.has(c));
-  if (!withTier) {
-    return cohortList.map((cohort) => ({
-      cohort,
-      tier: "",
-      showCohort: true,
-      cohortRowSpan: 1,
-    }));
-  }
   const tierList = CUST_TIER_OPTIONS.filter((t) => tiers.has(t));
+  const cohortList = SEVEN_COHORT_OPTIONS.filter((c) => cohorts.has(c));
+  const scenarioList = SCENARIO_COHORT_OPTIONS.filter((s) => scenarios.has(s));
   const rows: PivotRow[] = [];
-  for (const cohort of cohortList) {
-    tierList.forEach((tier, i) => {
-      rows.push({
-        cohort,
-        tier,
-        showCohort: i === 0,
-        cohortRowSpan: tierList.length,
-      });
-    });
+  for (const primary of tierList) {
+    let tierFirst = true;
+    const tierSpan = cohortList.length * scenarioList.length;
+    for (const secondary of cohortList) {
+      let cohortFirst = true;
+      const cohortSpan = scenarioList.length;
+      for (const tertiary of scenarioList) {
+        rows.push({
+          primary,
+          secondary,
+          tertiary,
+          showPrimary: tierFirst,
+          primaryRowSpan: tierSpan,
+          showSecondary: cohortFirst,
+          secondaryRowSpan: cohortSpan,
+        });
+        tierFirst = false;
+        cohortFirst = false;
+      }
+    }
   }
   return rows;
 }
@@ -326,25 +332,27 @@ function DimensionChipGroup({
   );
 }
 
-function DimensionPanel({
-  panelTitle,
-  primaryLabel,
-  primaryOptions,
-  showTier,
-  cohorts,
-  setCohorts,
-  tiers,
-  setTiers,
+function ProductDimensionPanel({
+  selected,
+  onChange,
 }: {
-  panelTitle: string;
-  primaryLabel: string;
-  primaryOptions: readonly string[];
-  showTier: boolean;
-  cohorts: Set<string>;
-  setCohorts: (s: Set<string>) => void;
-  tiers: Set<string>;
-  setTiers: (s: Set<string>) => void;
+  selected: Set<string>;
+  onChange: (next: Set<string>) => void;
 }) {
+  const allOptions = useMemo(() => flattenProductOptions(), []);
+
+  const toggle = (opt: string, groupOptions: readonly string[]) => {
+    const next = new Set(selected);
+    if (next.has(opt)) {
+      next.delete(opt);
+      if (next.size === 0) onChange(new Set(groupOptions));
+      else onChange(next);
+    } else {
+      next.add(opt);
+      onChange(next);
+    }
+  };
+
   return (
     <section
       className="flex h-full min-w-0 flex-col rounded-lg border"
@@ -356,30 +364,144 @@ function DimensionPanel({
       >
         <StepBadge n={0} />
         <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
-          {panelTitle}
+          产品选择
         </h3>
         <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
           可多选
         </span>
       </div>
-      <div className="flex flex-col gap-3 p-3">
-        <DimensionChipGroup
-          label={primaryLabel}
-          options={primaryOptions}
-          selected={cohorts}
-          onChange={setCohorts}
-        />
-        {showTier ? (
-          <>
-            <div className="h-px" style={{ background: TOKEN.border }} />
+      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
+        {PRODUCT_DIMENSION_GROUPS.map((group, gi) => (
+          <div key={group.label}>
+            {gi > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
+            <p className="mb-1.5 text-[12px] font-semibold" style={{ color: TOKEN.text }}>
+              {group.label}
+            </p>
+            {"subgroups" in group && group.subgroups ? (
+              <div className="flex flex-col gap-2">
+                {group.subgroups.map((sub) => (
+                  <div key={sub.label}>
+                    <p className="mb-1 text-[10px] font-medium" style={{ color: TOKEN.textDim }}>
+                      {sub.label}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {sub.options.map((opt) => {
+                        const active = selected.has(opt);
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => toggle(opt, group.options)}
+                            className="inline-flex shrink-0 cursor-pointer items-center rounded-md border px-2 py-[3px] text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E40AF]/35"
+                            style={{
+                              borderColor: active ? TOKEN.primary : TOKEN.border,
+                              background: active ? TOKEN.primary : TOKEN.card,
+                              color: active ? "#FFFFFF" : TOKEN.text,
+                              fontWeight: active ? 500 : 400,
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {group.options.map((opt) => {
+                  const active = selected.has(opt);
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggle(opt, group.options)}
+                      className="inline-flex shrink-0 cursor-pointer items-center rounded-md border px-2 py-[3px] text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E40AF]/35"
+                      style={{
+                        borderColor: active ? TOKEN.primary : TOKEN.border,
+                        background: active ? TOKEN.primary : TOKEN.card,
+                        color: active ? "#FFFFFF" : TOKEN.text,
+                        fontWeight: active ? 500 : 400,
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+        <div className="mt-1 flex items-center gap-1 border-t pt-2" style={{ borderColor: TOKEN.border }}>
+          <span className="text-[10px] tabular-nums" style={{ color: TOKEN.textDim }}>
+            已选 {selected.size}/{allOptions.length}
+          </span>
+          <TinyButton onClick={() => onChange(new Set(allOptions))}>全选</TinyButton>
+          <TinyButton onClick={() => onChange(new Set([allOptions[0]!]))}>重置</TinyButton>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CustomerDimensionPanel({
+  tiers,
+  setTiers,
+  cohorts,
+  setCohorts,
+  scenarios,
+  setScenarios,
+}: {
+  tiers: Set<string>;
+  setTiers: (s: Set<string>) => void;
+  cohorts: Set<string>;
+  setCohorts: (s: Set<string>) => void;
+  scenarios: Set<string>;
+  setScenarios: (s: Set<string>) => void;
+}) {
+  const setters: Record<string, (s: Set<string>) => void> = {
+    tier: setTiers,
+    cohort: setCohorts,
+    scenario: setScenarios,
+  };
+  const selections: Record<string, Set<string>> = {
+    tier: tiers,
+    cohort: cohorts,
+    scenario: scenarios,
+  };
+
+  return (
+    <section
+      className="flex h-full min-w-0 flex-col rounded-lg border"
+      style={{ borderColor: TOKEN.border, background: TOKEN.card }}
+    >
+      <div
+        className="flex items-center gap-2 rounded-t-lg border-b px-3 py-2"
+        style={{ borderColor: TOKEN.border, background: TOKEN.surfaceAlt }}
+      >
+        <StepBadge n={0} />
+        <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
+          客群选择
+        </h3>
+        <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
+          可多选
+        </span>
+      </div>
+      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
+        {CUSTOMER_DIMENSION_GROUPS.map((g, i) => (
+          <div key={g.key}>
+            {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
             <DimensionChipGroup
-              label="客户分层"
-              options={CUST_TIER_OPTIONS}
-              selected={tiers}
-              onChange={setTiers}
+              label={g.label}
+              options={g.options}
+              selected={selections[g.key]!}
+              onChange={setters[g.key]!}
             />
-          </>
-        ) : null}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -427,6 +549,7 @@ function IndicatorPanel({
   step,
   title,
   tabs,
+  analysisMode,
   selected,
   onChange,
   defaultCollapsed = false,
@@ -434,6 +557,7 @@ function IndicatorPanel({
   step: number;
   title: string;
   tabs: readonly string[];
+  analysisMode: AnalysisMode;
   selected: Set<string>;
   onChange: (next: Set<string>) => void;
   defaultCollapsed?: boolean;
@@ -443,7 +567,10 @@ function IndicatorPanel({
   const [query, setQuery] = useState("");
 
   const activeTabLabel = tabs[activeTab] ?? tabs[0] ?? "";
-  const tabFields = useMemo(() => getTabFields(activeTabLabel), [activeTabLabel]);
+  const tabFields = useMemo(
+    () => getIndicatorFieldsForTab(activeTabLabel, analysisMode),
+    [activeTabLabel, analysisMode],
+  );
 
   const selectedCount = useMemo(
     () => tabFields.filter((f) => selected.has(f)).length,
@@ -638,23 +765,25 @@ function SummaryChip({
 }
 
 function QueryHeader({
-  primaryLabel,
-  primaryTotal,
   headlineText,
-  showTier,
-  cohortCount,
+  isProductMode,
+  productCount,
+  productTotal,
   tierCount,
+  cohortCount,
+  scenarioCount,
   l1Count,
   l2Count,
   effectiveFieldCount,
   onReset,
 }: {
-  primaryLabel: string;
-  primaryTotal: number;
   headlineText: string;
-  showTier: boolean;
-  cohortCount: number;
+  isProductMode: boolean;
+  productCount: number;
+  productTotal: number;
   tierCount: number;
+  cohortCount: number;
+  scenarioCount: number;
   l1Count: number;
   l2Count: number;
   effectiveFieldCount: number;
@@ -681,18 +810,31 @@ function QueryHeader({
         <span className="mx-1" style={{ color: TOKEN.border }}>
           |
         </span>
-        <SummaryChip
-          label={primaryLabel}
-          value={`${cohortCount}/${primaryTotal}`}
-          tone="primary"
-        />
-        {showTier ? (
+        {isProductMode ? (
           <SummaryChip
-            label="客户分层"
-            value={`${tierCount}/${CUST_TIER_OPTIONS.length}`}
+            label="产品"
+            value={`${productCount}/${productTotal}`}
             tone="primary"
           />
-        ) : null}
+        ) : (
+          <>
+            <SummaryChip
+              label="客群分层"
+              value={`${tierCount}/${CUST_TIER_OPTIONS.length}`}
+              tone="primary"
+            />
+            <SummaryChip
+              label="七大客群"
+              value={`${cohortCount}/${SEVEN_COHORT_OPTIONS.length}`}
+              tone="primary"
+            />
+            <SummaryChip
+              label="场景客群"
+              value={`${scenarioCount}/${SCENARIO_COHORT_OPTIONS.length}`}
+              tone="primary"
+            />
+          </>
+        )}
         <SummaryChip label="一层指标" value={l1Count} />
         <SummaryChip label="二层指标" value={l2Count} />
         <SummaryChip label="生效字段" value={effectiveFieldCount} tone="primary" />
@@ -727,44 +869,61 @@ function QueryHeader({
 }
 
 function ResultPivotTable({
-  primaryLabel,
-  primaryOptions,
-  showTier,
+  analysisMode,
   headerSummary,
   emptyHint,
-  cohorts,
+  products,
   tiers,
+  cohorts,
+  scenarios,
   l1Fields,
   l2Fields,
 }: {
-  primaryLabel: string;
-  primaryOptions: readonly string[];
-  showTier: boolean;
+  analysisMode: AnalysisMode;
   headerSummary: string;
   emptyHint: string;
-  cohorts: Set<string>;
+  products: Set<string>;
   tiers: Set<string>;
+  cohorts: Set<string>;
+  scenarios: Set<string>;
   l1Fields: Set<string>;
   l2Fields: Set<string>;
 }) {
+  const isProductMode = analysisMode === "product";
+  const baseFields =
+    analysisMode === "product" ? PRODUCT_INDICATOR_FIELDS : CUSTOMER_INDICATOR_FIELDS;
+
   const fields = useMemo(() => {
-    const shared = PENDING_FIELDS.filter((f) => l1Fields.has(f) && l2Fields.has(f));
+    const shared = baseFields.filter((f) => l1Fields.has(f) && l2Fields.has(f));
     const yoyOnly = YOY_FIELDS.filter((f) => l2Fields.has(f));
     return [...shared, ...yoyOnly];
-  }, [l1Fields, l2Fields]);
+  }, [l1Fields, l2Fields, baseFields]);
+
+  const dimColumns: DimColumn[] = isProductMode
+    ? [{ label: "产品名称", left: 0, minWidth: 140 }]
+    : [
+        { label: "客群分层", left: 0, minWidth: 72 },
+        { label: "七大客群", left: 72, minWidth: 108 },
+        { label: "场景客群", left: 180, minWidth: 88 },
+      ];
 
   const rows = useMemo(
-    () => buildPivotRows(cohorts, tiers, primaryOptions, showTier),
-    [cohorts, tiers, primaryOptions, showTier],
+    () =>
+      isProductMode
+        ? buildProductPivotRows(products)
+        : buildCustomerPivotRows(tiers, cohorts, scenarios),
+    [isProductMode, products, tiers, cohorts, scenarios],
   );
 
   const rowCount = rows.length;
-  const colCount = (showTier ? 2 : 1) + fields.length * 3;
-  const isEmpty =
-    rowCount === 0 ||
-    fields.length === 0 ||
-    cohorts.size === 0 ||
-    (showTier && tiers.size === 0);
+  const colCount = dimColumns.length + fields.length * 3;
+  const isEmpty = isProductMode
+    ? rowCount === 0 || fields.length === 0 || products.size === 0
+    : rowCount === 0 ||
+      fields.length === 0 ||
+      tiers.size === 0 ||
+      cohorts.size === 0 ||
+      scenarios.size === 0;
 
   return (
     <section
@@ -794,31 +953,22 @@ function ResultPivotTable({
         <table className="w-full min-w-max border-collapse text-[12px]" style={{ color: TOKEN.text }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${TOKEN.border}`, background: TOKEN.surfaceAlt }}>
-              <th
-                rowSpan={2}
-                className="sticky left-0 z-[2] px-3 py-1.5 text-left text-[11px] font-semibold"
-                style={{
-                  background: TOKEN.surfaceAlt,
-                  minWidth: showTier ? 108 : 140,
-                  boxShadow: showTier ? undefined : `1px 0 0 ${TOKEN.border}`,
-                }}
-              >
-                {primaryLabel}
-              </th>
-              {showTier ? (
+              {dimColumns.map((col, i) => (
                 <th
+                  key={col.label}
                   rowSpan={2}
                   className="sticky z-[2] px-3 py-1.5 text-left text-[11px] font-semibold"
                   style={{
-                    left: 108,
+                    left: col.left,
                     background: TOKEN.surfaceAlt,
-                    minWidth: 72,
-                    boxShadow: `1px 0 0 ${TOKEN.border}`,
+                    minWidth: col.minWidth,
+                    boxShadow:
+                      i === dimColumns.length - 1 ? `1px 0 0 ${TOKEN.border}` : undefined,
                   }}
                 >
-                  客户分层
+                  {col.label}
                 </th>
-              ) : null}
+              ))}
               {fields.map((field) => (
                 <th
                   key={field}
@@ -861,46 +1011,70 @@ function ResultPivotTable({
             ) : (
               rows.map((row) => (
                 <tr
-                  key={`${row.cohort}-${row.tier}`}
+                  key={pivotRowKey(row)}
                   className="transition-colors hover:bg-[#EFF6FF]"
                   style={{ borderBottom: `1px solid ${TOKEN.border}` }}
                 >
-                  {row.showCohort ? (
+                  {isProductMode ? (
                     <td
-                      rowSpan={row.cohortRowSpan}
-                      className="sticky left-0 z-[1] px-3 py-1.5 align-middle text-left text-[11px] font-semibold"
+                      className="sticky left-0 z-[1] px-3 py-1.5 text-left text-[11px] font-semibold"
                       style={{
                         background: TOKEN.surface,
                         color: TOKEN.text,
-                        minWidth: showTier ? 108 : 140,
+                        minWidth: 140,
                         borderRight: `1px solid ${TOKEN.border}`,
                       }}
                     >
-                      {row.cohort}
+                      {row.primary}
                     </td>
-                  ) : null}
-                  {showTier ? (
-                    <td
-                      className="sticky z-[1] px-3 py-1.5 text-left text-[11px]"
-                      style={{
-                        left: 108,
-                        background: "#FFFFFF",
-                        color: TOKEN.textMuted,
-                        minWidth: 72,
-                        boxShadow: `1px 0 0 ${TOKEN.border}`,
-                      }}
-                    >
-                      {row.tier}
-                    </td>
-                  ) : null}
+                  ) : (
+                    <>
+                      {row.showPrimary ? (
+                        <td
+                          rowSpan={row.primaryRowSpan}
+                          className="sticky left-0 z-[1] px-3 py-1.5 align-middle text-left text-[11px] font-semibold"
+                          style={{
+                            background: TOKEN.surface,
+                            color: TOKEN.text,
+                            minWidth: 72,
+                            borderRight: `1px solid ${TOKEN.border}`,
+                          }}
+                        >
+                          {row.primary}
+                        </td>
+                      ) : null}
+                      {row.showSecondary ? (
+                        <td
+                          rowSpan={row.secondaryRowSpan}
+                          className="sticky z-[1] px-3 py-1.5 align-middle text-left text-[11px]"
+                          style={{
+                            left: 72,
+                            background: "#FFFFFF",
+                            color: TOKEN.textMuted,
+                            minWidth: 108,
+                            borderRight: `1px solid ${TOKEN.border}`,
+                          }}
+                        >
+                          {row.secondary}
+                        </td>
+                      ) : null}
+                      <td
+                        className="sticky z-[1] px-3 py-1.5 text-left text-[11px]"
+                        style={{
+                          left: 180,
+                          background: "#FFFFFF",
+                          color: TOKEN.textMuted,
+                          minWidth: 88,
+                          boxShadow: `1px 0 0 ${TOKEN.border}`,
+                        }}
+                      >
+                        {row.tertiary}
+                      </td>
+                    </>
+                  )}
                   {fields.map((field) =>
                     METRIC_KINDS.map((metric) => {
-                      const { display, yoyValue } = cellValue(
-                        row.cohort,
-                        row.tier,
-                        field,
-                        metric,
-                      );
+                      const { display, yoyValue } = cellValue(row, field, metric);
                       let color: string = TOKEN.text;
                       if (metric === "yoy" && yoyValue !== undefined) {
                         if (yoyValue > 0.05) color = TOKEN.positive;
@@ -933,42 +1107,47 @@ function ResultPivotTable({
 }
 
 export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?: string }) {
-  const isProductMode = w.analysisMode === "product";
-  const showTier = !isProductMode;
-  const primaryOptions = isProductMode ? PRODUCT_NAME_OPTIONS : SEVEN_COHORT_OPTIONS;
-  const primaryLabel = isProductMode ? "产品名称" : "七大客群";
-  const panelTitle = isProductMode ? "产品选择" : "客群选择";
+  const analysisMode: AnalysisMode = w.analysisMode === "product" ? "product" : "customer";
+  const isProductMode = analysisMode === "product";
+  const allProducts = useMemo(() => flattenProductOptions(), []);
+  const baseFields = isProductMode ? PRODUCT_INDICATOR_FIELDS : CUSTOMER_INDICATOR_FIELDS;
+
   const headlineText = isProductMode
-    ? "按产品拼装一/二层指标，实时生成交叉分析"
-    : "按客群×分层拼装一/二层指标，实时生成交叉分析";
+    ? "按产品分类拼装指标，实时生成交叉分析"
+    : "按客群分层×七大客群×场景客群拼装指标，实时生成交叉分析";
   const headerSummary = isProductMode
     ? "产品 × 指标 · 演示数据"
-    : "客群 × 分层 × 指标 · 演示数据";
+    : "分层 × 客群 × 场景 × 指标 · 演示数据";
   const emptyHint = isProductMode
     ? "请在左侧勾选产品，并至少在一层或二层指标中选择一个字段后查看结果"
-    : "请在左侧勾选客群与分层，并至少在一层或二层指标中选择一个字段后查看结果";
+    : "请在左侧勾选客群分层、七大客群与场景客群，并至少选择一个指标字段后查看结果";
 
-  const [cohorts, setCohorts] = useState<Set<string>>(() => new Set(primaryOptions));
+  const [products, setProducts] = useState<Set<string>>(() => new Set(allProducts));
   const [tiers, setTiers] = useState<Set<string>>(() => new Set(CUST_TIER_OPTIONS));
-  const [l1Fields, setL1Fields] = useState<Set<string>>(() => new Set(PENDING_FIELDS));
+  const [cohorts, setCohorts] = useState<Set<string>>(() => new Set(SEVEN_COHORT_OPTIONS));
+  const [scenarios, setScenarios] = useState<Set<string>>(() => new Set(SCENARIO_COHORT_OPTIONS));
+  const [l1Fields, setL1Fields] = useState<Set<string>>(() => new Set(baseFields));
   const [l2Fields, setL2Fields] = useState<Set<string>>(
-    () => new Set<string>([...PENDING_FIELDS, ...YOY_FIELDS]),
+    () => new Set<string>([...baseFields, ...YOY_FIELDS]),
   );
 
   const handleReset = () => {
-    setCohorts(new Set(primaryOptions));
-    setTiers(new Set(CUST_TIER_OPTIONS));
-    setL1Fields(new Set(PENDING_FIELDS));
-    setL2Fields(new Set<string>([...PENDING_FIELDS, ...YOY_FIELDS]));
+    if (isProductMode) {
+      setProducts(new Set(allProducts));
+    } else {
+      setTiers(new Set(CUST_TIER_OPTIONS));
+      setCohorts(new Set(SEVEN_COHORT_OPTIONS));
+      setScenarios(new Set(SCENARIO_COHORT_OPTIONS));
+    }
+    setL1Fields(new Set(baseFields));
+    setL2Fields(new Set<string>([...baseFields, ...YOY_FIELDS]));
   };
 
   const effectiveFieldCount = useMemo(() => {
-    const sharedCount = PENDING_FIELDS.filter(
-      (f) => l1Fields.has(f) && l2Fields.has(f),
-    ).length;
+    const sharedCount = baseFields.filter((f) => l1Fields.has(f) && l2Fields.has(f)).length;
     const yoyCount = YOY_FIELDS.filter((f) => l2Fields.has(f)).length;
     return sharedCount + yoyCount;
-  }, [l1Fields, l2Fields]);
+  }, [l1Fields, l2Fields, baseFields]);
 
   return (
     <div
@@ -982,12 +1161,13 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
       ) : null}
 
       <QueryHeader
-        primaryLabel={primaryLabel}
-        primaryTotal={primaryOptions.length}
         headlineText={headlineText}
-        showTier={showTier}
-        cohortCount={cohorts.size}
+        isProductMode={isProductMode}
+        productCount={products.size}
+        productTotal={allProducts.length}
         tierCount={tiers.size}
+        cohortCount={cohorts.size}
+        scenarioCount={scenarios.size}
         l1Count={l1Fields.size}
         l2Count={l2Fields.size}
         effectiveFieldCount={effectiveFieldCount}
@@ -998,21 +1178,24 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
         className="grid items-stretch gap-3"
         style={{ gridTemplateColumns: "minmax(260px, 280px) minmax(0, 1fr)" }}
       >
-        <DimensionPanel
-          panelTitle={panelTitle}
-          primaryLabel={primaryLabel}
-          primaryOptions={primaryOptions}
-          showTier={showTier}
-          cohorts={cohorts}
-          setCohorts={setCohorts}
-          tiers={tiers}
-          setTiers={setTiers}
-        />
+        {isProductMode ? (
+          <ProductDimensionPanel selected={products} onChange={setProducts} />
+        ) : (
+          <CustomerDimensionPanel
+            tiers={tiers}
+            setTiers={setTiers}
+            cohorts={cohorts}
+            setCohorts={setCohorts}
+            scenarios={scenarios}
+            setScenarios={setScenarios}
+          />
+        )}
         <div className="flex min-w-0 flex-col gap-3">
           <IndicatorPanel
             step={1}
             title="一层指标选取"
             tabs={LEVEL1_TABS}
+            analysisMode={analysisMode}
             selected={l1Fields}
             onChange={setL1Fields}
           />
@@ -1020,18 +1203,19 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
             step={2}
             title="二层指标选取"
             tabs={LEVEL2_TABS}
+            analysisMode={analysisMode}
             selected={l2Fields}
             onChange={setL2Fields}
             defaultCollapsed
           />
           <ResultPivotTable
-            primaryLabel={primaryLabel}
-            primaryOptions={primaryOptions}
-            showTier={showTier}
+            analysisMode={analysisMode}
             headerSummary={headerSummary}
             emptyHint={emptyHint}
-            cohorts={cohorts}
+            products={products}
             tiers={tiers}
+            cohorts={cohorts}
+            scenarios={scenarios}
             l1Fields={l1Fields}
             l2Fields={l2Fields}
           />

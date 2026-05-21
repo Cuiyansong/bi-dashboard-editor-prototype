@@ -94,7 +94,7 @@ export const TEMPLATES: TemplatePreset[] = [
     id: "self-service-query",
     name: "客群分析",
     pageTitle: "客群分析",
-    description: "七大客群 × 客户分层为维度，一/二层指标自由拼装交叉分析",
+    description: "客群分层、七大客群与场景客群为维度，业务考核指标自由拼装交叉分析",
     dashboardTabs: ["交叉分析"],
     accent: "#2563EB",
     widgets: [
@@ -120,7 +120,7 @@ export const TEMPLATES: TemplatePreset[] = [
     id: "product-analysis",
     name: "产品分析",
     pageTitle: "产品分析",
-    description: "产品名称为维度，一/二层指标自由拼装交叉分析",
+    description: "存款/理财/基金/信用卡/个贷分类选品，销量与中收等指标交叉分析",
     dashboardTabs: ["交叉分析"],
     accent: "#0EA5E9",
     widgets: [
