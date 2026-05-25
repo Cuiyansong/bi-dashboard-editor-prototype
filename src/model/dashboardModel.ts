@@ -40,7 +40,7 @@ export interface TemplatePreset {
   accent: string;
 }
 
-/** 顺序：驾驶舱、通报与考核、客户经营分析、策略编辑 */
+/** 顺序：考核分析、产品分析、客群分析、效益分析、营销后评价 */
 export const TEMPLATES: TemplatePreset[] = [
   // {
   //   id: "cockpit",
@@ -90,6 +90,57 @@ export const TEMPLATES: TemplatePreset[] = [
     ],
   },
   {
+    id: "product-analysis",
+    name: "产品分析",
+    pageTitle: "产品分析",
+    description: "存款/理财/基金/信用卡/个贷分类选品，销量与中收等指标交叉分析",
+    dashboardTabs: ["交叉分析"],
+    accent: "#0EA5E9",
+    widgets: [
+      {
+        id: "w_pa",
+        type: "table",
+        title: "产品分析",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "产品分析",
+        analysisMode: "product",
+      },
+    ],
+    previewWidgets: [
+      { id: "pv_pa_a", type: "kpi", title: "产品总览", colSpan: 2 },
+      { id: "pv_pa_b", type: "line", title: "周期趋势", colSpan: 2 },
+      { id: "pv_pa_c", type: "table", title: "产品矩阵", colSpan: 2 },
+      { id: "pv_pa_d", type: "bar", title: "产品渗透分析", colSpan: 2 },
+    ],
+  },
+  {
+    id: "self-service-query",
+    name: "客群分析",
+    pageTitle: "客群分析",
+    description: "客群分层、七大客群与场景客群为维度，业务考核指标自由拼装交叉分析",
+    dashboardTabs: ["交叉分析"],
+    accent: "#2563EB",
+    widgets: [
+      {
+        id: "w_ssq",
+        type: "table",
+        title: "客群分析",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "客群分析",
+        analysisMode: "customer",
+      },
+    ],
+    previewWidgets: [
+      { id: "pv_ssq_a", type: "kpi", title: "经营收入", colSpan: 1 },
+      { id: "pv_ssq_b", type: "kpi", title: "活跃客户", colSpan: 1 },
+      { id: "pv_ssq_c", type: "bar", title: "区域收入对比", colSpan: 2 },
+      { id: "pv_ssq_d", type: "line", title: "产品渗透趋势", colSpan: 2 },
+      { id: "pv_ssq_e", type: "table", title: "客户分层明细", colSpan: 2 },
+    ],
+  },
+  {
     id: "strategy",
     name: "效益分析",
     pageTitle: "效益分析",
@@ -121,71 +172,20 @@ export const TEMPLATES: TemplatePreset[] = [
     ],
   },
   {
-    id: "self-service-query",
-    name: "客群分析",
-    pageTitle: "客群分析",
-    description: "客群分层、七大客群与场景客群为维度，业务考核指标自由拼装交叉分析",
-    dashboardTabs: ["交叉分析"],
-    accent: "#2563EB",
-    widgets: [
-      {
-        id: "w_ssq",
-        type: "table",
-        title: "客群分析",
-        colSpan: 2,
-        replicaLayout: "selfServiceQuery",
-        libraryLabel: "客群分析",
-        analysisMode: "customer",
-      },
-    ],
-    previewWidgets: [
-      { id: "pv_ssq_a", type: "kpi", title: "经营收入", colSpan: 1 },
-      { id: "pv_ssq_b", type: "kpi", title: "活跃客户", colSpan: 1 },
-      { id: "pv_ssq_c", type: "bar", title: "区域收入对比", colSpan: 2 },
-      { id: "pv_ssq_d", type: "line", title: "产品渗透趋势", colSpan: 2 },
-      { id: "pv_ssq_e", type: "table", title: "客户分层明细", colSpan: 2 },
-    ],
-  },
-  {
-    id: "product-analysis",
-    name: "产品分析",
-    pageTitle: "产品分析",
-    description: "存款/理财/基金/信用卡/个贷分类选品，销量与中收等指标交叉分析",
-    dashboardTabs: ["交叉分析"],
-    accent: "#0EA5E9",
-    widgets: [
-      {
-        id: "w_pa",
-        type: "table",
-        title: "产品分析",
-        colSpan: 2,
-        replicaLayout: "selfServiceQuery",
-        libraryLabel: "产品分析",
-        analysisMode: "product",
-      },
-    ],
-    previewWidgets: [
-      { id: "pv_pa_a", type: "kpi", title: "产品总览", colSpan: 2 },
-      { id: "pv_pa_b", type: "line", title: "周期趋势", colSpan: 2 },
-      { id: "pv_pa_c", type: "table", title: "产品矩阵", colSpan: 2 },
-      { id: "pv_pa_d", type: "bar", title: "产品渗透分析", colSpan: 2 },
-    ],
-  },
-  {
     id: "post-evaluation",
-    name: "后评价",
-    pageTitle: "后评价",
-    description: "消费达标享好礼后评价：客户号 × 支付渠道 SUM 指标交叉分析",
+    name: "营销后评价",
+    pageTitle: "营销后评价",
+    description: "消费达标享好礼营销后评价：客户号 × 支付渠道 SUM 指标交叉分析",
     dashboardTabs: ["消费达标享好礼-后评价"],
     accent: "#059669",
     widgets: [
       {
         id: "w_pe",
         type: "table",
-        title: "后评价",
+        title: "营销后评价",
         colSpan: 2,
         replicaLayout: "selfServiceQuery",
-        libraryLabel: "后评价",
+        libraryLabel: "营销后评价",
         analysisMode: "postEvaluation",
       },
     ],

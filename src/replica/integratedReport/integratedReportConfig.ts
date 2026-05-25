@@ -41,9 +41,9 @@ export type ReportTreeNode = {
 
 const MARKET_TEMPLATE_IDS = [
   "report-kpi",
-  "strategy",
-  "self-service-query",
   "product-analysis",
+  "self-service-query",
+  "strategy",
   "post-evaluation",
 ] as const;
 

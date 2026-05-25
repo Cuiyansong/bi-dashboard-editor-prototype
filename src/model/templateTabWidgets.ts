@@ -63,7 +63,7 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
   ],
   strategy: selfServiceQueryTabWidgets("st", "效益分析", "benefit", 4),
   "report-kpi": selfServiceQueryTabWidgets("rp", "考核分析", "assessment", 8),
-  "post-evaluation": selfServiceQueryTabWidgets("pe", "后评价", "postEvaluation", 1),
+  "post-evaluation": selfServiceQueryTabWidgets("pe", "营销后评价", "postEvaluation", 1),
 };
 
 /** 与模板 Tab 数对齐的初始画布；无定制表时按 Tab 克隆 widgets 并改写 id */

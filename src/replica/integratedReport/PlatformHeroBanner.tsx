@@ -16,7 +16,7 @@ export function PlatformHeroBanner({
   titleId,
   eyebrow = "综合报表平台 · 银行业务分析",
   title = "报表查询与仪表板配置",
-  subtitle = "预置考核、效益、客群、产品、后评价等分析模板；支持报表查询、配置发布与模板建表。",
+  subtitle = "预置考核、产品、客群、效益、营销后评价等分析模板；支持报表查询、配置发布与模板建表。",
 }: PlatformHeroBannerProps) {
   const [imgSrc, setImgSrc] = useState(PLATFORM_HERO_IMAGE);
   const [imgFailed, setImgFailed] = useState(false);
