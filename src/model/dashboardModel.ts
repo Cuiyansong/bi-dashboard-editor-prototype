@@ -40,6 +40,17 @@ export interface TemplatePreset {
   accent: string;
 }
 
+/** 业务模板市场展示顺序（首页、模板建表、侧栏树共用） */
+export const MARKET_TEMPLATE_IDS = [
+  "report-kpi",
+  "product-analysis",
+  "self-service-query",
+  "strategy",
+  "post-evaluation",
+] as const;
+
+export type MarketTemplateId = (typeof MARKET_TEMPLATE_IDS)[number];
+
 /** 顺序：考核分析、产品分析、客群分析、效益分析、营销后评价 */
 export const TEMPLATES: TemplatePreset[] = [
   // {

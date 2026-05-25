@@ -1,4 +1,4 @@
-import { TEMPLATES } from "../../model/dashboardModel";
+import { MARKET_TEMPLATE_IDS, TEMPLATES } from "../../model/dashboardModel";
 
 export type IntegratedTopNavId =
   | "home"
@@ -38,14 +38,6 @@ export type ReportTreeNode = {
   dashTabLabel?: string;
   children?: ReportTreeNode[];
 };
-
-const MARKET_TEMPLATE_IDS = [
-  "report-kpi",
-  "product-analysis",
-  "self-service-query",
-  "strategy",
-  "post-evaluation",
-] as const;
 
 function templateById(id: string) {
   const t = TEMPLATES.find((x) => x.id === id);

@@ -1,4 +1,4 @@
-import { TEMPLATES, type TemplatePreset } from "../model/dashboardModel";
+import { MARKET_TEMPLATE_IDS, TEMPLATES, type TemplatePreset } from "../model/dashboardModel";
 import { TemplateMarketThumbnail } from "./TemplateMarketThumbnail";
 
 export type TemplateMarketCardProps = {
@@ -85,4 +85,9 @@ export function TemplateMarketCard({
   );
 }
 
-export const MARKET_TEMPLATES = TEMPLATES.filter((t) => t.id !== "blank");
+/** 按 MARKET_TEMPLATE_IDS 固定顺序，供首页与 TemplatePickerPanel 等共用 */
+export const MARKET_TEMPLATES: TemplatePreset[] = MARKET_TEMPLATE_IDS.map((id) => {
+  const preset = TEMPLATES.find((t) => t.id === id);
+  if (!preset) throw new Error(`Missing market template: ${id}`);
+  return preset;
+});
