@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CanvasWidget } from "../model/dashboardModel";
 import { CUST_TIER_OPTIONS, SEVEN_COHORT_OPTIONS } from "../model/customerFilters";
 import {
@@ -1021,6 +1021,7 @@ function QueryHeader({
   effectiveFieldCount,
   insertedChartCount,
   onReset,
+  onOpenInsertPanel,
   viewOnly = false,
 }: {
   headlineText: string;
@@ -1030,6 +1031,7 @@ function QueryHeader({
   effectiveFieldCount: number;
   insertedChartCount: number;
   onReset: () => void;
+  onOpenInsertPanel?: () => void;
   viewOnly?: boolean;
 }) {
   return (
@@ -1074,6 +1076,16 @@ function QueryHeader({
       </div>
       {viewOnly ? null : (
         <div className="flex shrink-0 items-center gap-2">
+        {onOpenInsertPanel ? (
+          <button
+            type="button"
+            onClick={onOpenInsertPanel}
+            className="cursor-pointer rounded-md border px-2.5 py-1.5 text-[12px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30"
+            style={{ borderColor: TOKEN.border, background: "#FFFFFF", color: TOKEN.textMuted }}
+          >
+            插入看板
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onReset}
@@ -1480,6 +1492,15 @@ export function SelfServiceQueryBoardCard({
     () => new Set<string>([...baseFields, ...YOY_FIELDS]),
   );
   const [insertedCharts, setInsertedCharts] = useState<InsertedChart[]>([]);
+  const [insertPanelCollapsed, setInsertPanelCollapsed] = useState(true);
+  const insertPanelRef = useRef<HTMLElement>(null);
+
+  const openInsertPanel = useCallback(() => {
+    setInsertPanelCollapsed(false);
+    requestAnimationFrame(() => {
+      insertPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, []);
 
   useEffect(() => {
     setGenericDims(initGenericDimensionSelections(benefitDimGroups));
@@ -1630,6 +1651,7 @@ export function SelfServiceQueryBoardCard({
         effectiveFieldCount={effectiveFieldCount}
         insertedChartCount={insertedCharts.length}
         onReset={handleReset}
+        onOpenInsertPanel={isViewMode ? undefined : openInsertPanel}
         viewOnly={isViewMode}
       />
 
@@ -1743,6 +1765,9 @@ export function SelfServiceQueryBoardCard({
             l2Fields={l2Fields}
             insertedCount={insertedCharts.length}
             onInsert={(chart) => setInsertedCharts((prev) => [...prev, chart])}
+            collapsed={insertPanelCollapsed}
+            onCollapsedChange={setInsertPanelCollapsed}
+            sectionRef={insertPanelRef}
           />
         </div>
       </div>

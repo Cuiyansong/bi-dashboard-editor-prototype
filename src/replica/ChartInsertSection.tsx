@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type Ref } from "react";
 import type { WidgetType } from "../model/dashboardModel";
 import {
   type AnalysisMode,
@@ -221,6 +221,10 @@ export function ChartInsertPanel({
   l2Fields,
   insertedCount = 0,
   onInsert,
+  collapsed: collapsedProp,
+  defaultCollapsed = true,
+  onCollapsedChange,
+  sectionRef,
 }: {
   analysisMode: AnalysisMode;
   dashTabLabel?: string;
@@ -229,8 +233,27 @@ export function ChartInsertPanel({
   l2Fields: Set<string>;
   insertedCount?: number;
   onInsert: (chart: InsertedChart) => void;
+  collapsed?: boolean;
+  defaultCollapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  sectionRef?: Ref<HTMLElement>;
 }) {
-  const [collapsed, setCollapsed] = useState(true);
+  const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
+  const collapsed = collapsedProp ?? internalCollapsed;
+
+  const setCollapsed = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      const resolved =
+        typeof next === "function"
+          ? next(collapsedProp ?? internalCollapsed)
+          : next;
+      if (collapsedProp === undefined) {
+        setInternalCollapsed(resolved);
+      }
+      onCollapsedChange?.(resolved);
+    },
+    [collapsedProp, internalCollapsed, onCollapsedChange],
+  );
   const dimensionGroups = useMemo(
     () => getDimensionGroupsForInsert(analysisMode, dashTabLabel),
     [analysisMode, dashTabLabel],
@@ -308,6 +331,8 @@ export function ChartInsertPanel({
 
   return (
     <section
+      ref={sectionRef}
+      data-chart-insert-panel
       className="rounded-lg border"
       style={{ borderColor: TOKEN.border, background: TOKEN.card }}
     >
