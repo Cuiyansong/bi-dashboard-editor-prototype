@@ -1,19 +1,42 @@
-﻿import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CanvasWidget } from "../model/dashboardModel";
 import { CUST_TIER_OPTIONS, SEVEN_COHORT_OPTIONS } from "../model/customerFilters";
+import {
+  ASSESSMENT_DIMENSION_GROUPS,
+  getAssessmentIndicatorFieldGroupsForTab,
+  ORG_BRANCH_OPTIONS,
+  ORG_OUTLET_OPTIONS,
+  ORG_PROVINCE_OPTIONS,
+} from "./assessmentQueryConfig";
+import {
+  getBenefitDimensionGroupsForTab,
+  type BenefitDimensionGroup,
+} from "./benefitQueryConfig";
+import { CustomerIdExcelUploadPanel } from "./CustomerIdExcelUploadPanel";
+import {
+  createDefaultCustomerIdUpload,
+  POST_EVAL_CUSTOMER_IDS,
+  getPostEvaluationIndicatorsForTab,
+} from "./postEvaluationQueryConfig";
 import { ChartInsertPanel, InsertedChartsGallery } from "./ChartInsertSection";
 import type { InsertedChart } from "./chartInsertConfig";
+import { initGenericDimensionSelections } from "./chartInsertConfig";
 import {
   CUSTOMER_DIMENSION_GROUPS,
   CUSTOMER_INDICATOR_FIELDS,
   flattenProductOptions,
+  getBaseIndicatorFields,
   getIndicatorFieldsForTab,
+  ASSESSMENT_LEVEL1_TABS,
+  ASSESSMENT_LEVEL2_TABS,
   LEVEL1_TABS,
   LEVEL2_TABS,
   PRODUCT_DIMENSION_GROUPS,
   PRODUCT_INDICATOR_FIELDS,
   SCENARIO_COHORT_OPTIONS,
   YOY_FIELDS,
+  YOY_TAB_LABEL,
+  type AnalysisMode,
 } from "./selfServiceQueryConfig";
 
 const TOKEN = {
@@ -33,8 +56,6 @@ const TOKEN = {
   positive: "#16A34A",
   negative: "#DC2626",
 } as const;
-
-type AnalysisMode = "customer" | "product";
 
 type MetricKind = "amount" | "share" | "yoy";
 
@@ -64,7 +85,7 @@ function seed(...keys: (string | number)[]): number {
 }
 
 function isHighValueField(field: string): boolean {
-  return /余额|金额|客户数量|销量|购买/.test(field);
+  return /余额|金额|客户数量|销量|购买|收入|利润|交易额|成本/.test(field);
 }
 
 function cellAmount(rowKey: string, field: string): string {
@@ -81,8 +102,11 @@ function cellAmount(rowKey: string, field: string): string {
   }
   let v = 200 + s * 4800;
   if (isHighValueField(field)) v *= 1.5 + s * 0.5;
-  if (field === "销售笔数" || field === "客户数量") {
+  if (field === "销售笔数" || field === "客户数量" || field === "排名" || /排名$/.test(field)) {
     return String(Math.round(50 + s * 950));
+  }
+  if (/率$|占比|渗透率|激活率|参与率|增速|不良率/.test(field)) {
+    return `${(s * 24 + 1).toFixed(1)}%`;
   }
   v = Math.round(v / 100) * 100;
   return v.toLocaleString("zh-CN");
@@ -116,6 +140,19 @@ function cellValue(
   return { display: yoy.text, yoyValue: yoy.value };
 }
 
+function buildCustomerIdPivotRows(customerIds: Set<string>): PivotRow[] {
+  const list = POST_EVAL_CUSTOMER_IDS.filter((id) => customerIds.has(id));
+  return list.map((primary) => ({
+    primary,
+    secondary: "",
+    tertiary: "",
+    showPrimary: true,
+    primaryRowSpan: 1,
+    showSecondary: false,
+    secondaryRowSpan: 1,
+  }));
+}
+
 function buildProductPivotRows(products: Set<string>): PivotRow[] {
   const list = flattenProductOptions().filter((p) => products.has(p));
   return list.map((primary) => ({
@@ -129,14 +166,17 @@ function buildProductPivotRows(products: Set<string>): PivotRow[] {
   }));
 }
 
-function buildCustomerPivotRows(
-  tiers: Set<string>,
-  cohorts: Set<string>,
-  scenarios: Set<string>,
+function buildTriplePivotRows(
+  list1: readonly string[],
+  list2: readonly string[],
+  list3: readonly string[],
+  sel1: Set<string>,
+  sel2: Set<string>,
+  sel3: Set<string>,
 ): PivotRow[] {
-  const tierList = CUST_TIER_OPTIONS.filter((t) => tiers.has(t));
-  const cohortList = SEVEN_COHORT_OPTIONS.filter((c) => cohorts.has(c));
-  const scenarioList = SCENARIO_COHORT_OPTIONS.filter((s) => scenarios.has(s));
+  const tierList = list1.filter((t) => sel1.has(t));
+  const cohortList = list2.filter((c) => sel2.has(c));
+  const scenarioList = list3.filter((s) => sel3.has(s));
   const rows: PivotRow[] = [];
   for (const primary of tierList) {
     let tierFirst = true;
@@ -160,6 +200,54 @@ function buildCustomerPivotRows(
     }
   }
   return rows;
+}
+
+function buildCustomerPivotRows(
+  tiers: Set<string>,
+  cohorts: Set<string>,
+  scenarios: Set<string>,
+): PivotRow[] {
+  return buildTriplePivotRows(
+    CUST_TIER_OPTIONS,
+    SEVEN_COHORT_OPTIONS,
+    SCENARIO_COHORT_OPTIONS,
+    tiers,
+    cohorts,
+    scenarios,
+  );
+}
+
+function buildOrgPivotRows(
+  provinces: Set<string>,
+  branches: Set<string>,
+  outlets: Set<string>,
+): PivotRow[] {
+  return buildTriplePivotRows(
+    ORG_PROVINCE_OPTIONS,
+    ORG_BRANCH_OPTIONS,
+    ORG_OUTLET_OPTIONS,
+    provinces,
+    branches,
+    outlets,
+  );
+}
+
+function buildGenericPivotRows(
+  groups: readonly BenefitDimensionGroup[],
+  selections: Record<string, Set<string>>,
+): PivotRow[] {
+  if (groups.length < 3) return [];
+  const g0 = groups[0]!;
+  const g1 = groups[1]!;
+  const g2 = groups[2]!;
+  return buildTriplePivotRows(
+    g0.options,
+    g1.options,
+    g2.options,
+    selections[g0.key] ?? new Set(),
+    selections[g1.key] ?? new Set(),
+    selections[g2.key] ?? new Set(),
+  );
 }
 
 function ChevronIcon({ expanded }: { expanded: boolean }) {
@@ -449,6 +537,116 @@ function ProductDimensionPanel({
   );
 }
 
+
+function OrgDimensionPanel({
+  provinces,
+  setProvinces,
+  branches,
+  setBranches,
+  outlets,
+  setOutlets,
+}: {
+  provinces: Set<string>;
+  setProvinces: (s: Set<string>) => void;
+  branches: Set<string>;
+  setBranches: (s: Set<string>) => void;
+  outlets: Set<string>;
+  setOutlets: (s: Set<string>) => void;
+}) {
+  const setters: Record<string, (s: Set<string>) => void> = {
+    province: setProvinces,
+    branch: setBranches,
+    outlet: setOutlets,
+  };
+  const selections: Record<string, Set<string>> = {
+    province: provinces,
+    branch: branches,
+    outlet: outlets,
+  };
+
+  return (
+    <section
+      className="flex h-full min-w-0 flex-col rounded-lg border"
+      style={{ borderColor: TOKEN.border, background: TOKEN.card }}
+    >
+      <div
+        className="flex items-center gap-2 rounded-t-lg border-b px-3 py-2"
+        style={{ borderColor: TOKEN.border, background: TOKEN.surfaceAlt }}
+      >
+        <StepBadge n={0} />
+        <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
+          机构选择
+        </h3>
+        <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
+          可多选
+        </span>
+      </div>
+      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
+        {ASSESSMENT_DIMENSION_GROUPS.map((g, i) => (
+          <div key={g.key}>
+            {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
+            <DimensionChipGroup
+              label={g.label}
+              options={g.options}
+              selected={selections[g.key]!}
+              onChange={setters[g.key]!}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GenericDimensionPanel({
+  panelTitle,
+  groups,
+  selections,
+  onChange,
+}: {
+  panelTitle: string;
+  groups: readonly BenefitDimensionGroup[];
+  selections: Record<string, Set<string>>;
+  onChange: (key: string, next: Set<string>) => void;
+}) {
+  const setters = Object.fromEntries(
+    groups.map((g) => [g.key, (s: Set<string>) => onChange(g.key, s)]),
+  ) as Record<string, (s: Set<string>) => void>;
+
+  return (
+    <section
+      className="flex h-full min-w-0 flex-col rounded-lg border"
+      style={{ borderColor: TOKEN.border, background: TOKEN.card }}
+    >
+      <div
+        className="flex items-center gap-2 rounded-t-lg border-b px-3 py-2"
+        style={{ borderColor: TOKEN.border, background: TOKEN.surfaceAlt }}
+      >
+        <StepBadge n={0} />
+        <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
+          {panelTitle}
+        </h3>
+        <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
+          可多选
+        </span>
+      </div>
+      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
+        {groups.map((g, i) => (
+          <div key={g.key}>
+            {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
+            <DimensionChipGroup
+              label={g.label}
+              options={g.options}
+              selected={selections[g.key]!}
+              onChange={setters[g.key]!}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CustomerDimensionPanel({
   tiers,
   setTiers,
@@ -524,7 +722,7 @@ function FieldChip({
       role="checkbox"
       aria-checked={selected}
       onClick={onToggle}
-      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-[3px] text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E40AF]/35"
+      className="inline-flex w-fit max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-[3px] text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E40AF]/35"
       style={{
         borderColor: selected ? TOKEN.primary : TOKEN.border,
         background: selected ? TOKEN.primarySoft : TOKEN.card,
@@ -552,6 +750,7 @@ function IndicatorPanel({
   title,
   tabs,
   analysisMode,
+  dashTabLabel,
   selected,
   onChange,
   defaultCollapsed = false,
@@ -560,6 +759,7 @@ function IndicatorPanel({
   title: string;
   tabs: readonly string[];
   analysisMode: AnalysisMode;
+  dashTabLabel?: string;
   selected: Set<string>;
   onChange: (next: Set<string>) => void;
   defaultCollapsed?: boolean;
@@ -569,10 +769,17 @@ function IndicatorPanel({
   const [query, setQuery] = useState("");
 
   const activeTabLabel = tabs[activeTab] ?? tabs[0] ?? "";
-  const tabFields = useMemo(
-    () => getIndicatorFieldsForTab(activeTabLabel, analysisMode),
-    [activeTabLabel, analysisMode],
-  );
+  const fieldGroups = useMemo(() => {
+    if (analysisMode === "assessment" && activeTabLabel !== YOY_TAB_LABEL) {
+      return getAssessmentIndicatorFieldGroupsForTab(activeTabLabel);
+    }
+    return null;
+  }, [analysisMode, activeTabLabel]);
+
+  const tabFields = useMemo(() => {
+    if (fieldGroups) return fieldGroups.flatMap((g) => g.fields);
+    return getIndicatorFieldsForTab(activeTabLabel, analysisMode, dashTabLabel);
+  }, [fieldGroups, activeTabLabel, analysisMode, dashTabLabel]);
 
   const selectedCount = useMemo(
     () => tabFields.filter((f) => selected.has(f)).length,
@@ -716,10 +923,50 @@ function IndicatorPanel({
           </div>
 
           <div
-            className="flex flex-wrap content-start gap-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]"
-            style={{ maxHeight: 132 }}
+            className={`overflow-y-auto pr-1 [scrollbar-width:thin] ${
+              fieldGroups ? "flex flex-col gap-2" : "flex flex-wrap content-start gap-1.5"
+            }`}
+            style={{ maxHeight: fieldGroups ? 168 : 132 }}
           >
-            {filteredFields.length === 0 ? (
+            {fieldGroups ? (
+              fieldGroups.some((group) => {
+                const groupFields = query.trim()
+                  ? group.fields.filter((f) => f.includes(query.trim()))
+                  : group.fields;
+                return groupFields.length > 0;
+              }) ? (
+                fieldGroups.map((group) => {
+                  const groupFields = query.trim()
+                    ? group.fields.filter((f) => f.includes(query.trim()))
+                    : group.fields;
+                  if (groupFields.length === 0) return null;
+                  return (
+                    <div key={group.label} className="w-full">
+                      <p
+                        className="mb-1 px-0.5 text-[10px] font-medium"
+                        style={{ color: TOKEN.textDim }}
+                      >
+                        {group.label}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {groupFields.map((label) => (
+                          <FieldChip
+                            key={`${step}-${group.label}-${label}`}
+                            label={label}
+                            selected={selected.has(label)}
+                            onToggle={() => toggleField(label)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="px-1 py-2 text-[11px]" style={{ color: TOKEN.textDim }}>
+                  未匹配到字段
+                </p>
+              )
+            ) : filteredFields.length === 0 ? (
               <p className="px-1 py-2 text-[11px]" style={{ color: TOKEN.textDim }}>
                 未匹配到字段
               </p>
@@ -768,30 +1015,22 @@ function SummaryChip({
 
 function QueryHeader({
   headlineText,
-  isProductMode,
-  productCount,
-  productTotal,
-  tierCount,
-  cohortCount,
-  scenarioCount,
+  dimensionChips,
   l1Count,
   l2Count,
   effectiveFieldCount,
   insertedChartCount,
   onReset,
+  viewOnly = false,
 }: {
   headlineText: string;
-  isProductMode: boolean;
-  productCount: number;
-  productTotal: number;
-  tierCount: number;
-  cohortCount: number;
-  scenarioCount: number;
+  dimensionChips: { label: string; value: string; tone?: "neutral" | "primary" | "accent" }[];
   l1Count: number;
   l2Count: number;
   effectiveFieldCount: number;
   insertedChartCount: number;
   onReset: () => void;
+  viewOnly?: boolean;
 }) {
   return (
     <div
@@ -804,9 +1043,9 @@ function QueryHeader({
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-          style={{ background: TOKEN.primary, color: "#FFFFFF" }}
+          style={{ background: viewOnly ? "#64748B" : TOKEN.primary, color: "#FFFFFF" }}
         >
-          QUERY
+          {viewOnly ? "VIEW" : "QUERY"}
         </span>
         <span className="text-[12px]" style={{ color: TOKEN.textMuted }}>
           {headlineText}
@@ -814,39 +1053,27 @@ function QueryHeader({
         <span className="mx-1" style={{ color: TOKEN.border }}>
           |
         </span>
-        {isProductMode ? (
+        {dimensionChips.map((chip) => (
           <SummaryChip
-            label="产品"
-            value={`${productCount}/${productTotal}`}
-            tone="primary"
+            key={chip.label}
+            label={chip.label}
+            value={chip.value}
+            tone={chip.tone ?? "primary"}
           />
-        ) : (
+        ))}
+        {viewOnly ? null : (
           <>
-            <SummaryChip
-              label="客群分层"
-              value={`${tierCount}/${CUST_TIER_OPTIONS.length}`}
-              tone="primary"
-            />
-            <SummaryChip
-              label="七大客群"
-              value={`${cohortCount}/${SEVEN_COHORT_OPTIONS.length}`}
-              tone="primary"
-            />
-            <SummaryChip
-              label="场景客群"
-              value={`${scenarioCount}/${SCENARIO_COHORT_OPTIONS.length}`}
-              tone="primary"
-            />
+            <SummaryChip label="一层指标" value={l1Count} />
+            <SummaryChip label="二层指标" value={l2Count} />
+            <SummaryChip label="生效字段" value={effectiveFieldCount} tone="primary" />
           </>
         )}
-        <SummaryChip label="一层指标" value={l1Count} />
-        <SummaryChip label="二层指标" value={l2Count} />
-        <SummaryChip label="生效字段" value={effectiveFieldCount} tone="primary" />
         {insertedChartCount > 0 ? (
           <SummaryChip label="已插入看板" value={insertedChartCount} tone="accent" />
         ) : null}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      {viewOnly ? null : (
+        <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={onReset}
@@ -870,35 +1097,53 @@ function QueryHeader({
           <PlayIcon />
           查询
         </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function ResultPivotTable({
   analysisMode,
+  dashTabLabel,
   headerSummary,
   emptyHint,
+  dimGroups,
   products,
   tiers,
   cohorts,
   scenarios,
+  provinces,
+  branches,
+  outlets,
+  genericSelections,
+  customerIds,
   l1Fields,
   l2Fields,
 }: {
   analysisMode: AnalysisMode;
+  dashTabLabel?: string;
   headerSummary: string;
   emptyHint: string;
+  dimGroups: readonly BenefitDimensionGroup[];
   products: Set<string>;
   tiers: Set<string>;
   cohorts: Set<string>;
   scenarios: Set<string>;
+  provinces: Set<string>;
+  branches: Set<string>;
+  outlets: Set<string>;
+  genericSelections: Record<string, Set<string>>;
+  customerIds: Set<string>;
   l1Fields: Set<string>;
   l2Fields: Set<string>;
 }) {
   const isProductMode = analysisMode === "product";
-  const baseFields =
-    analysisMode === "product" ? PRODUCT_INDICATOR_FIELDS : CUSTOMER_INDICATOR_FIELDS;
+  const isPostEvaluationMode = analysisMode === "postEvaluation";
+  const isAssessmentMode = analysisMode === "assessment";
+  const isBenefitMode = analysisMode === "benefit";
+  const isSingleColumnMode = isProductMode || isPostEvaluationMode;
+  const baseFields = getBaseIndicatorFields(analysisMode, dashTabLabel);
 
   const fields = useMemo(() => {
     const shared = baseFields.filter((f) => l1Fields.has(f) && l2Fields.has(f));
@@ -906,31 +1151,61 @@ function ResultPivotTable({
     return [...shared, ...yoyOnly];
   }, [l1Fields, l2Fields, baseFields]);
 
-  const dimColumns: DimColumn[] = isProductMode
-    ? [{ label: "产品名称", left: 0, minWidth: 140 }]
-    : [
-        { label: "客群分层", left: 0, minWidth: 72 },
-        { label: "七大客群", left: 72, minWidth: 108 },
-        { label: "场景客群", left: 180, minWidth: 88 },
-      ];
+  const dimColumns: DimColumn[] = isSingleColumnMode
+    ? [{ label: isPostEvaluationMode ? "客户号" : "产品名称", left: 0, minWidth: 140 }]
+    : isAssessmentMode
+      ? [
+          { label: "省行", left: 0, minWidth: 80 },
+          { label: "二级行", left: 80, minWidth: 96 },
+          { label: "网点", left: 176, minWidth: 96 },
+        ]
+      : isBenefitMode && dimGroups.length >= 3
+        ? [
+            { label: dimGroups[0]!.label, left: 0, minWidth: 80 },
+            { label: dimGroups[1]!.label, left: 80, minWidth: 96 },
+            { label: dimGroups[2]!.label, left: 176, minWidth: 96 },
+          ]
+        : [
+            { label: "客群分层", left: 0, minWidth: 72 },
+            { label: "七大客群", left: 72, minWidth: 108 },
+            { label: "场景客群", left: 180, minWidth: 88 },
+          ];
 
-  const rows = useMemo(
-    () =>
-      isProductMode
-        ? buildProductPivotRows(products)
-        : buildCustomerPivotRows(tiers, cohorts, scenarios),
-    [isProductMode, products, tiers, cohorts, scenarios],
-  );
+  const rows = useMemo(() => {
+    if (isPostEvaluationMode) return buildCustomerIdPivotRows(customerIds);
+    if (isProductMode) return buildProductPivotRows(products);
+    if (isAssessmentMode) return buildOrgPivotRows(provinces, branches, outlets);
+    if (isBenefitMode) return buildGenericPivotRows(dimGroups, genericSelections);
+    return buildCustomerPivotRows(tiers, cohorts, scenarios);
+  }, [
+    isPostEvaluationMode,
+    isProductMode,
+    isAssessmentMode,
+    isBenefitMode,
+    customerIds,
+    products,
+    provinces,
+    branches,
+    outlets,
+    dimGroups,
+    genericSelections,
+    tiers,
+    cohorts,
+    scenarios,
+  ]);
 
   const rowCount = rows.length;
   const colCount = dimColumns.length + fields.length * 3;
-  const isEmpty = isProductMode
-    ? rowCount === 0 || fields.length === 0 || products.size === 0
-    : rowCount === 0 ||
-      fields.length === 0 ||
-      tiers.size === 0 ||
-      cohorts.size === 0 ||
-      scenarios.size === 0;
+  const dimsSelected = isSingleColumnMode
+    ? isPostEvaluationMode
+      ? customerIds.size > 0
+      : products.size > 0
+    : isAssessmentMode
+      ? provinces.size > 0 && branches.size > 0 && outlets.size > 0
+      : isBenefitMode
+        ? dimGroups.every((g) => (genericSelections[g.key]?.size ?? 0) > 0)
+        : tiers.size > 0 && cohorts.size > 0 && scenarios.size > 0;
+  const isEmpty = rowCount === 0 || fields.length === 0 || !dimsSelected;
 
   return (
     <section
@@ -1022,7 +1297,7 @@ function ResultPivotTable({
                   className="transition-colors hover:bg-[#EFF6FF]"
                   style={{ borderBottom: `1px solid ${TOKEN.border}` }}
                 >
-                  {isProductMode ? (
+                  {isSingleColumnMode ? (
                     <td
                       className="sticky left-0 z-[1] px-3 py-1.5 text-left text-[11px] font-semibold"
                       style={{
@@ -1039,11 +1314,12 @@ function ResultPivotTable({
                       {row.showPrimary ? (
                         <td
                           rowSpan={row.primaryRowSpan}
-                          className="sticky left-0 z-[1] px-3 py-1.5 align-middle text-left text-[11px] font-semibold"
+                          className="sticky z-[1] px-3 py-1.5 align-middle text-left text-[11px] font-semibold"
                           style={{
+                            left: dimColumns[0]?.left ?? 0,
                             background: TOKEN.surface,
                             color: TOKEN.text,
-                            minWidth: 72,
+                            minWidth: dimColumns[0]?.minWidth ?? 72,
                             borderRight: `1px solid ${TOKEN.border}`,
                           }}
                         >
@@ -1055,10 +1331,10 @@ function ResultPivotTable({
                           rowSpan={row.secondaryRowSpan}
                           className="sticky z-[1] px-3 py-1.5 align-middle text-left text-[11px]"
                           style={{
-                            left: 72,
+                            left: dimColumns[1]?.left ?? 72,
                             background: "#FFFFFF",
                             color: TOKEN.textMuted,
-                            minWidth: 108,
+                            minWidth: dimColumns[1]?.minWidth ?? 108,
                             borderRight: `1px solid ${TOKEN.border}`,
                           }}
                         >
@@ -1068,10 +1344,10 @@ function ResultPivotTable({
                       <td
                         className="sticky z-[1] px-3 py-1.5 text-left text-[11px]"
                         style={{
-                          left: 180,
+                          left: dimColumns[2]?.left ?? 180,
                           background: "#FFFFFF",
                           color: TOKEN.textMuted,
-                          minWidth: 88,
+                          minWidth: dimColumns[2]?.minWidth ?? 88,
                           boxShadow: `1px 0 0 ${TOKEN.border}`,
                         }}
                       >
@@ -1113,35 +1389,139 @@ function ResultPivotTable({
   );
 }
 
-export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?: string }) {
-  const analysisMode: AnalysisMode = w.analysisMode === "product" ? "product" : "customer";
+export function SelfServiceQueryBoardCard({
+  w,
+  hint,
+  dashTabLabel = "",
+  displayMode = "configure",
+}: {
+  w: CanvasWidget;
+  hint?: string;
+  dashTabLabel?: string;
+  /** configure：编辑器/配置页（维度+指标+结果）；view：报表查询查看页（仅筛选摘要+图表） */
+  displayMode?: "configure" | "view";
+}) {
+  const isViewMode = displayMode === "view";
+  const analysisMode: AnalysisMode =
+    w.analysisMode === "product" ||
+    w.analysisMode === "assessment" ||
+    w.analysisMode === "benefit" ||
+    w.analysisMode === "postEvaluation"
+      ? w.analysisMode
+      : "customer";
   const isProductMode = analysisMode === "product";
+  const isPostEvaluationMode = analysisMode === "postEvaluation";
+  const isAssessmentMode = analysisMode === "assessment";
+  const isBenefitMode = analysisMode === "benefit";
   const allProducts = useMemo(() => flattenProductOptions(), []);
-  const baseFields = isProductMode ? PRODUCT_INDICATOR_FIELDS : CUSTOMER_INDICATOR_FIELDS;
+  const benefitDimGroups = useMemo(
+    () => getBenefitDimensionGroupsForTab(dashTabLabel),
+    [dashTabLabel],
+  );
 
-  const headlineText = isProductMode
-    ? "按产品分类拼装指标，实时生成交叉分析"
-    : "按客群分层×七大客群×场景客群拼装指标，实时生成交叉分析";
-  const headerSummary = isProductMode
-    ? "产品 × 指标 · 演示数据"
-    : "分层 × 客群 × 场景 × 指标 · 演示数据";
-  const emptyHint = isProductMode
-    ? "请在左侧勾选产品，并至少在一层或二层指标中选择一个字段后查看结果"
-    : "请在左侧勾选客群分层、七大客群与场景客群，并至少选择一个指标字段后查看结果";
+  const baseFields = useMemo(
+    () => getBaseIndicatorFields(analysisMode, dashTabLabel),
+    [analysisMode, dashTabLabel],
+  );
+
+  const headlineText = useMemo(() => {
+    if (isPostEvaluationMode) {
+      return "按客户号×支付渠道 SUM 指标拼装，实时生成后评价交叉分析";
+    }
+    if (isAssessmentMode) {
+      return `按机构维度拼装「${dashTabLabel || "考核"}」指标，实时生成交叉分析`;
+    }
+    if (isBenefitMode) {
+      return `按${benefitDimGroups.map((g) => g.label).join("×")}拼装效益指标，实时生成交叉分析`;
+    }
+    if (isProductMode) {
+      return "按产品分类拼装指标，实时生成交叉分析";
+    }
+    return "按客群分层×七大客群×场景客群拼装指标，实时生成交叉分析";
+  }, [isAssessmentMode, isBenefitMode, isProductMode, isPostEvaluationMode, dashTabLabel, benefitDimGroups]);
+
+  const headerSummary = useMemo(() => {
+    if (isPostEvaluationMode) return "客户号 × 渠道指标 · 演示数据";
+    if (isAssessmentMode) return `机构 × ${dashTabLabel} · 演示数据`;
+    if (isBenefitMode) return `${dashTabLabel || "效益"} × 指标 · 演示数据`;
+    if (isProductMode) return "产品 × 指标 · 演示数据";
+    return "分层 × 客群 × 场景 × 指标 · 演示数据";
+  }, [isAssessmentMode, isBenefitMode, isProductMode, isPostEvaluationMode, dashTabLabel]);
+
+  const emptyHint = useMemo(() => {
+    if (isPostEvaluationMode) {
+      return "请先上传包含客户号的 Excel 文件，并至少选择一个支付渠道指标字段后查看结果";
+    }
+    if (isAssessmentMode) {
+      return "请在左侧勾选省行、二级行与网点，并至少选择一个指标字段后查看结果";
+    }
+    if (isBenefitMode) {
+      return `请在左侧勾选${benefitDimGroups.map((g) => g.label).join("、")}，并至少选择一个指标字段后查看结果`;
+    }
+    if (isProductMode) {
+      return "请在左侧勾选产品，并至少在一层或二层指标中选择一个字段后查看结果";
+    }
+    return "请在左侧勾选客群分层、七大客群与场景客群，并至少选择一个指标字段后查看结果";
+  }, [isAssessmentMode, isBenefitMode, isProductMode, benefitDimGroups]);
 
   const [products, setProducts] = useState<Set<string>>(() => new Set(allProducts));
+  const [customerIdUpload, setCustomerIdUpload] = useState(createDefaultCustomerIdUpload);
   const [tiers, setTiers] = useState<Set<string>>(() => new Set(CUST_TIER_OPTIONS));
   const [cohorts, setCohorts] = useState<Set<string>>(() => new Set(SEVEN_COHORT_OPTIONS));
   const [scenarios, setScenarios] = useState<Set<string>>(() => new Set(SCENARIO_COHORT_OPTIONS));
+  const [provinces, setProvinces] = useState<Set<string>>(() => new Set(ORG_PROVINCE_OPTIONS));
+  const [branches, setBranches] = useState<Set<string>>(() => new Set(ORG_BRANCH_OPTIONS));
+  const [outlets, setOutlets] = useState<Set<string>>(() => new Set(ORG_OUTLET_OPTIONS));
+  const [genericDims, setGenericDims] = useState<Record<string, Set<string>>>(() =>
+    initGenericDimensionSelections(benefitDimGroups),
+  );
   const [l1Fields, setL1Fields] = useState<Set<string>>(() => new Set(baseFields));
   const [l2Fields, setL2Fields] = useState<Set<string>>(
     () => new Set<string>([...baseFields, ...YOY_FIELDS]),
   );
   const [insertedCharts, setInsertedCharts] = useState<InsertedChart[]>([]);
 
+  useEffect(() => {
+    setGenericDims(initGenericDimensionSelections(benefitDimGroups));
+    setL1Fields(new Set(baseFields));
+    setL2Fields(new Set<string>([...baseFields, ...YOY_FIELDS]));
+    setInsertedCharts([]);
+    if (isAssessmentMode) {
+      setProvinces(new Set(ORG_PROVINCE_OPTIONS));
+      setBranches(new Set(ORG_BRANCH_OPTIONS));
+      setOutlets(new Set(ORG_OUTLET_OPTIONS));
+    } else if (isProductMode) {
+      setProducts(new Set(allProducts));
+    } else if (isPostEvaluationMode) {
+      setCustomerIdUpload(createDefaultCustomerIdUpload());
+    } else if (!isBenefitMode) {
+      setTiers(new Set(CUST_TIER_OPTIONS));
+      setCohorts(new Set(SEVEN_COHORT_OPTIONS));
+      setScenarios(new Set(SCENARIO_COHORT_OPTIONS));
+    }
+  }, [
+    dashTabLabel,
+    analysisMode,
+    baseFields,
+    benefitDimGroups,
+    isAssessmentMode,
+    isBenefitMode,
+    isProductMode,
+    isPostEvaluationMode,
+    allProducts,
+  ]);
+
   const handleReset = () => {
     if (isProductMode) {
       setProducts(new Set(allProducts));
+    } else if (isPostEvaluationMode) {
+      setCustomerIdUpload(createDefaultCustomerIdUpload());
+    } else if (isAssessmentMode) {
+      setProvinces(new Set(ORG_PROVINCE_OPTIONS));
+      setBranches(new Set(ORG_BRANCH_OPTIONS));
+      setOutlets(new Set(ORG_OUTLET_OPTIONS));
+    } else if (isBenefitMode) {
+      setGenericDims(initGenericDimensionSelections(benefitDimGroups));
     } else {
       setTiers(new Set(CUST_TIER_OPTIONS));
       setCohorts(new Set(SEVEN_COHORT_OPTIONS));
@@ -1159,9 +1539,77 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
   }, [l1Fields, l2Fields, baseFields]);
 
   const dimensionSelections = useMemo(
-    () => ({ products, tiers, cohorts, scenarios }),
-    [products, tiers, cohorts, scenarios],
+    () => ({
+      products,
+      tiers,
+      cohorts,
+      scenarios,
+      provinces,
+      branches,
+      outlets,
+      generic: genericDims,
+      customerIds: customerIdUpload.customerIds,
+    }),
+    [products, tiers, cohorts, scenarios, provinces, branches, outlets, genericDims, customerIdUpload],
   );
+
+  const dimensionChips = useMemo(() => {
+    if (isPostEvaluationMode) {
+      const upload = customerIdUpload;
+      return [
+        {
+          label: "客户号",
+          value: upload.fileName ? `已上传 ${upload.rowCount} 条` : "未上传",
+        },
+      ];
+    }
+    if (isProductMode) {
+      return [{ label: "产品", value: `${products.size}/${allProducts.length}` }];
+    }
+    if (isAssessmentMode) {
+      return [
+        { label: "省行", value: `${provinces.size}/${ORG_PROVINCE_OPTIONS.length}` },
+        { label: "二级行", value: `${branches.size}/${ORG_BRANCH_OPTIONS.length}` },
+        { label: "网点", value: `${outlets.size}/${ORG_OUTLET_OPTIONS.length}` },
+      ];
+    }
+    if (isBenefitMode) {
+      return benefitDimGroups.map((g) => ({
+        label: g.label,
+        value: `${genericDims[g.key]?.size ?? 0}/${g.options.length}`,
+      }));
+    }
+    return [
+      { label: "客群分层", value: `${tiers.size}/${CUST_TIER_OPTIONS.length}` },
+      { label: "七大客群", value: `${cohorts.size}/${SEVEN_COHORT_OPTIONS.length}` },
+      { label: "场景客群", value: `${scenarios.size}/${SCENARIO_COHORT_OPTIONS.length}` },
+    ];
+  }, [
+    isPostEvaluationMode,
+    isProductMode,
+    isAssessmentMode,
+    isBenefitMode,
+    customerIdUpload,
+    products,
+    allProducts,
+    provinces,
+    branches,
+    outlets,
+    benefitDimGroups,
+    genericDims,
+    tiers,
+    cohorts,
+    scenarios,
+  ]);
+
+  const benefitPanelTitle =
+    dashTabLabel === "客户PA"
+      ? "客户选择"
+      : dashTabLabel === "机构PA"
+        ? "机构选择"
+        : dashTabLabel === "客群PA"
+          ? "客群选择"
+          : "产品选择";
 
   return (
     <div
@@ -1176,25 +1624,65 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
 
       <QueryHeader
         headlineText={headlineText}
-        isProductMode={isProductMode}
-        productCount={products.size}
-        productTotal={allProducts.length}
-        tierCount={tiers.size}
-        cohortCount={cohorts.size}
-        scenarioCount={scenarios.size}
+        dimensionChips={dimensionChips}
         l1Count={l1Fields.size}
         l2Count={l2Fields.size}
         effectiveFieldCount={effectiveFieldCount}
         insertedChartCount={insertedCharts.length}
         onReset={handleReset}
+        viewOnly={isViewMode}
       />
 
+      {isViewMode ? (
+        <div className="flex min-w-0 flex-col gap-3">
+          <ResultPivotTable
+            analysisMode={analysisMode}
+            dashTabLabel={dashTabLabel}
+            headerSummary={headerSummary}
+            emptyHint={emptyHint}
+            dimGroups={benefitDimGroups}
+            products={products}
+            tiers={tiers}
+            cohorts={cohorts}
+            scenarios={scenarios}
+            provinces={provinces}
+            branches={branches}
+            outlets={outlets}
+            genericSelections={genericDims}
+            customerIds={customerIdUpload.customerIds}
+            l1Fields={l1Fields}
+            l2Fields={l2Fields}
+          />
+          <InsertedChartsGallery
+            charts={insertedCharts}
+            onRemove={(id) => setInsertedCharts((prev) => prev.filter((c) => c.id !== id))}
+          />
+        </div>
+      ) : (
       <div
         className="grid items-stretch gap-3"
         style={{ gridTemplateColumns: "minmax(260px, 280px) minmax(0, 1fr)" }}
       >
         {isProductMode ? (
           <ProductDimensionPanel selected={products} onChange={setProducts} />
+        ) : isPostEvaluationMode ? (
+          <CustomerIdExcelUploadPanel value={customerIdUpload} onChange={setCustomerIdUpload} />
+        ) : isAssessmentMode ? (
+          <OrgDimensionPanel
+            provinces={provinces}
+            setProvinces={setProvinces}
+            branches={branches}
+            setBranches={setBranches}
+            outlets={outlets}
+            setOutlets={setOutlets}
+          />
+        ) : isBenefitMode ? (
+          <GenericDimensionPanel
+            panelTitle={benefitPanelTitle}
+            groups={benefitDimGroups}
+            selections={genericDims}
+            onChange={(key, next) => setGenericDims((prev) => ({ ...prev, [key]: next }))}
+          />
         ) : (
           <CustomerDimensionPanel
             tiers={tiers}
@@ -1209,28 +1697,37 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
           <IndicatorPanel
             step={1}
             title="一层指标选取"
-            tabs={LEVEL1_TABS}
+            tabs={isAssessmentMode ? ASSESSMENT_LEVEL1_TABS : LEVEL1_TABS}
             analysisMode={analysisMode}
+            dashTabLabel={dashTabLabel}
             selected={l1Fields}
             onChange={setL1Fields}
           />
           <IndicatorPanel
             step={2}
             title="二层指标选取"
-            tabs={LEVEL2_TABS}
+            tabs={isAssessmentMode ? ASSESSMENT_LEVEL2_TABS : LEVEL2_TABS}
             analysisMode={analysisMode}
+            dashTabLabel={dashTabLabel}
             selected={l2Fields}
             onChange={setL2Fields}
             defaultCollapsed
           />
           <ResultPivotTable
             analysisMode={analysisMode}
+            dashTabLabel={dashTabLabel}
             headerSummary={headerSummary}
             emptyHint={emptyHint}
+            dimGroups={benefitDimGroups}
             products={products}
             tiers={tiers}
             cohorts={cohorts}
             scenarios={scenarios}
+            provinces={provinces}
+            branches={branches}
+            outlets={outlets}
+            genericSelections={genericDims}
+            customerIds={customerIdUpload.customerIds}
             l1Fields={l1Fields}
             l2Fields={l2Fields}
           />
@@ -1240,6 +1737,7 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
           />
           <ChartInsertPanel
             analysisMode={analysisMode}
+            dashTabLabel={dashTabLabel}
             dimensionSelections={dimensionSelections}
             l1Fields={l1Fields}
             l2Fields={l2Fields}
@@ -1248,6 +1746,7 @@ export function SelfServiceQueryBoardCard({ w, hint }: { w: CanvasWidget; hint?:
           />
         </div>
       </div>
+      )}
     </div>
   );
 }

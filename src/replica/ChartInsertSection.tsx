@@ -215,6 +215,7 @@ export function InlineChartPreview({
 
 export function ChartInsertPanel({
   analysisMode,
+  dashTabLabel,
   dimensionSelections,
   l1Fields,
   l2Fields,
@@ -222,6 +223,7 @@ export function ChartInsertPanel({
   onInsert,
 }: {
   analysisMode: AnalysisMode;
+  dashTabLabel?: string;
   dimensionSelections: DimensionSelections;
   l1Fields: Set<string>;
   l2Fields: Set<string>;
@@ -230,32 +232,35 @@ export function ChartInsertPanel({
 }) {
   const [collapsed, setCollapsed] = useState(true);
   const dimensionGroups = useMemo(
-    () => getDimensionGroupsForInsert(analysisMode),
-    [analysisMode],
+    () => getDimensionGroupsForInsert(analysisMode, dashTabLabel),
+    [analysisMode, dashTabLabel],
   );
-  const allDimensions = useMemo(() => getAllDimensionOptions(analysisMode), [analysisMode]);
+  const allDimensions = useMemo(
+    () => getAllDimensionOptions(analysisMode, dashTabLabel),
+    [analysisMode, dashTabLabel],
+  );
   const indicatorOptions = useMemo(
-    () => getIndicatorOptionsForInsert(analysisMode),
-    [analysisMode],
+    () => getIndicatorOptionsForInsert(analysisMode, dashTabLabel),
+    [analysisMode, dashTabLabel],
   );
 
   const [chartType, setChartType] = useState<WidgetType | null>("bar");
   const [selectedDimensions, setSelectedDimensions] = useState<Set<string>>(() =>
-    getDefaultInsertDimensions(analysisMode, dimensionSelections),
+    getDefaultInsertDimensions(analysisMode, dimensionSelections, dashTabLabel),
   );
   const [selectedIndicators, setSelectedIndicators] = useState<Set<string>>(() =>
-    getDefaultInsertIndicators(analysisMode, l1Fields, l2Fields),
+    getDefaultInsertIndicators(analysisMode, l1Fields, l2Fields, dashTabLabel),
   );
 
   useEffect(() => {
-    setSelectedDimensions(getDefaultInsertDimensions(analysisMode, dimensionSelections));
-    setSelectedIndicators(getDefaultInsertIndicators(analysisMode, l1Fields, l2Fields));
-  }, [analysisMode, dimensionSelections, l1Fields, l2Fields]);
+    setSelectedDimensions(getDefaultInsertDimensions(analysisMode, dimensionSelections, dashTabLabel));
+    setSelectedIndicators(getDefaultInsertIndicators(analysisMode, l1Fields, l2Fields, dashTabLabel));
+  }, [analysisMode, dashTabLabel, dimensionSelections, l1Fields, l2Fields]);
 
   const resetDraft = () => {
     setChartType("bar");
-    setSelectedDimensions(getDefaultInsertDimensions(analysisMode, dimensionSelections));
-    setSelectedIndicators(getDefaultInsertIndicators(analysisMode, l1Fields, l2Fields));
+    setSelectedDimensions(getDefaultInsertDimensions(analysisMode, dimensionSelections, dashTabLabel));
+    setSelectedIndicators(getDefaultInsertIndicators(analysisMode, l1Fields, l2Fields, dashTabLabel));
   };
 
   const toggleDimension = (opt: string, groupOptions: readonly string[]) => {

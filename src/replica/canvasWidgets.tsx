@@ -312,6 +312,7 @@ export function WidgetBody({
   pct,
   accent,
   slotBindings = {},
+  dashTabLabel,
 }: {
   w: CanvasWidget;
   measureKey: MeasureKey;
@@ -325,6 +326,7 @@ export function WidgetBody({
   pct: number;
   accent: string;
   slotBindings?: FieldSlotBindings;
+  dashTabLabel?: string;
 }) {
   const dim0 = dimensionLabels[0] ?? "维度";
   const dim1 = dimensionLabels[1] ?? "分类";
@@ -367,7 +369,7 @@ export function WidgetBody({
     return <CompoundQueryCard w={w} rowLabels={rowLabels} />;
   }
   if (w.replicaLayout === "selfServiceQuery") {
-    return <SelfServiceQueryBoardCard w={w} hint={hint || undefined} />;
+    return <SelfServiceQueryBoardCard w={w} hint={hint || undefined} dashTabLabel={dashTabLabel} />;
   }
   if (w.replicaLayout === "metricBreakdownTree") {
     return (

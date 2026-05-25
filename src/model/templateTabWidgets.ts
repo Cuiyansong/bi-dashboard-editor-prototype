@@ -1,8 +1,29 @@
 /**
  * 各模板「看板 Tab」独立组件列表（与 {@link TemplatePreset.dashboardTabs} 顺序一一对应）。
  * 全局 widget id 在各 Tab 间唯一，便于字段绑定与选中态。
+ *
+ * 原版 report-kpi / strategy 看板见 {@link ./templateLegacyPresets.ts}。
  */
 import type { CanvasWidget, TemplatePreset } from "./dashboardModel";
+
+function selfServiceQueryTabWidgets(
+  prefix: string,
+  title: string,
+  analysisMode: "assessment" | "benefit" | "postEvaluation",
+  tabCount: number,
+): CanvasWidget[][] {
+  return Array.from({ length: tabCount }, (_, ti) => [
+    {
+      id: `${prefix}_ssq__t${ti}`,
+      type: "table" as const,
+      title,
+      colSpan: 2,
+      replicaLayout: "selfServiceQuery" as const,
+      libraryLabel: title,
+      analysisMode,
+    },
+  ]);
+}
 
 export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
   blank: [[]],
@@ -40,65 +61,9 @@ export const PRESET_TAB_WIDGETS: Record<string, CanvasWidget[][]> = {
       { id: "cp2_e", type: "line", title: "事项处理时效", colSpan: 2 },
     ],
   ],
-  strategy: [
-    [
-      {
-        id: "st0_a",
-        type: "table",
-        title: "客群策略全周期追踪看板",
-        colSpan: 2,
-        replicaLayout: "strategyCohortTable",
-      },
-      { id: "st0_b", type: "kpi", title: "策略命中数", colSpan: 1 },
-      { id: "st0_c", type: "kpi", title: "覆盖客群", colSpan: 1 },
-      { id: "st0_d", type: "table", title: "规则列表", colSpan: 2 },
-      { id: "st0_e", type: "bar", title: "上线前后对比", colSpan: 2 },
-    ],
-    [
-      { id: "st1_a", type: "table", title: "规则版本对照", colSpan: 2 },
-      { id: "st1_b", type: "bar", title: "规则命中排行", colSpan: 2 },
-      { id: "st1_c", type: "line", title: "版本迭代趋势", colSpan: 2 },
-      { id: "st1_d", type: "kpi", title: "生效规则数", colSpan: 1 },
-      { id: "st1_e", type: "kpi", title: "灰度比例", colSpan: 1 },
-    ],
-    [
-      { id: "st2_a", type: "line", title: "影响面趋势", colSpan: 2 },
-      { id: "st2_b", type: "bar", title: "客群影响分布", colSpan: 2 },
-      { id: "st2_c", type: "kpi", title: "预估增收", colSpan: 1 },
-      { id: "st2_d", type: "kpi", title: "风险敞口", colSpan: 1 },
-      { id: "st2_e", type: "table", title: "影响评估明细", colSpan: 2 },
-    ],
-  ],
-  "report-kpi": [
-    [
-      {
-        id: "rp0_org",
-        type: "table",
-        title: "各机构进度与达成",
-        colSpan: 2,
-        replicaLayout: "orgProgressBoard",
-      },
-      { id: "rp0_a", type: "bar", title: "部门排名", colSpan: 2 },
-      { id: "rp0_b", type: "liquid", title: "达成率", colSpan: 1 },
-      { id: "rp0_c", type: "kpi", title: "考核得分", colSpan: 1 },
-      { id: "rp0_d", type: "table", title: "通报明细", colSpan: 2 },
-      { id: "rp0_e", type: "line", title: "周期趋势", colSpan: 2 },
-    ],
-    [
-      { id: "rp1_a", type: "kpi", title: "KPI 综合得分", colSpan: 1 },
-      { id: "rp1_b", type: "kpi", title: "指标达标率", colSpan: 1 },
-      { id: "rp1_c", type: "bar", title: "指标对比分析", colSpan: 2 },
-      { id: "rp1_d", type: "line", title: "得分走势", colSpan: 2 },
-      { id: "rp1_e", type: "table", title: "指标拆解明细", colSpan: 2 },
-    ],
-    [
-      { id: "rp2_a", type: "bar", title: "支行考核排名", colSpan: 2 },
-      { id: "rp2_b", type: "table", title: "个人绩效榜单", colSpan: 2 },
-      { id: "rp2_c", type: "kpi", title: "前30%人数", colSpan: 1 },
-      { id: "rp2_d", type: "kpi", title: "待提升人数", colSpan: 1 },
-      { id: "rp2_e", type: "line", title: "排名变动趋势", colSpan: 2 },
-    ],
-  ],
+  strategy: selfServiceQueryTabWidgets("st", "效益分析", "benefit", 4),
+  "report-kpi": selfServiceQueryTabWidgets("rp", "考核分析", "assessment", 8),
+  "post-evaluation": selfServiceQueryTabWidgets("pe", "后评价", "postEvaluation", 1),
 };
 
 /** 与模板 Tab 数对齐的初始画布；无定制表时按 Tab 克隆 widgets 并改写 id */

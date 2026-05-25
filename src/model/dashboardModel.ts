@@ -23,8 +23,8 @@ export interface CanvasWidget {
     | "compoundQuery"
     | "insuranceCockpitBoard"
     | "selfServiceQuery";
-  /** 客群/产品分析交叉表模式 */
-  analysisMode?: "customer" | "product";
+  /** 自助查询交叉表模式 */
+  analysisMode?: "customer" | "product" | "assessment" | "benefit" | "postEvaluation";
 }
 
 export interface TemplatePreset {
@@ -58,36 +58,66 @@ export const TEMPLATES: TemplatePreset[] = [
     id: "report-kpi",
     name: "考核分析",
     pageTitle: "考核分析",
-    description: "KPI 考核与排名视图占位",
-    dashboardTabs: ["通报报表", "考核报表"],
+    description: "机构维度 × 通报指标，按业务线拼装考核交叉分析",
+    dashboardTabs: [
+      "存款通报",
+      "理财销量通报",
+      "基金中收通报",
+      "保险销售通报",
+      "借记卡快捷支付考核",
+      "信用卡通报",
+      "消费贷款通报",
+      "手机银行通报",
+    ],
     accent: "#fa8c16",
     widgets: [
-      { id: "w1", type: "bar", title: "部门排名", colSpan: 2 },
-      { id: "w2", type: "liquid", title: "达成率", colSpan: 1 },
-      { id: "w3", type: "kpi", title: "考核得分", colSpan: 1 },
-      { id: "w4", type: "table", title: "通报明细", colSpan: 2 },
-      { id: "w5", type: "line", title: "周期趋势", colSpan: 2 },
+      {
+        id: "w_assessment",
+        type: "table",
+        title: "考核分析",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "考核分析",
+        analysisMode: "assessment",
+      },
+    ],
+    previewWidgets: [
+      { id: "pv_rk_a", type: "bar", title: "部门排名", colSpan: 2 },
+      { id: "pv_rk_b", type: "liquid", title: "达成率", colSpan: 1 },
+      { id: "pv_rk_c", type: "kpi", title: "考核得分", colSpan: 1 },
+      { id: "pv_rk_d", type: "table", title: "通报明细", colSpan: 2 },
+      { id: "pv_rk_e", type: "line", title: "周期趋势", colSpan: 2 },
     ],
   },
   {
     id: "strategy",
     name: "效益分析",
     pageTitle: "效益分析",
-    description: "营销效益策略分析、规则版本与影响评估",
-    dashboardTabs: ["客户PA", "机构PA", "客群PA", "客层PA"],
+    description: "客户/机构/客群/产品 PA 维度，成本收入利润等指标交叉分析",
+    dashboardTabs: ["客户PA", "机构PA", "客群PA", "产品PA"],
     accent: "#722ed1",
     widgets: [
       {
-        id: "w_cohort",
+        id: "w_benefit",
+        type: "table",
+        title: "效益分析",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "效益分析",
+        analysisMode: "benefit",
+      },
+    ],
+    previewWidgets: [
+      {
+        id: "pv_st_a",
         type: "table",
         title: "客群策略全周期追踪看板",
         colSpan: 2,
         replicaLayout: "strategyCohortTable",
       },
-      { id: "w1", type: "kpi", title: "策略命中数", colSpan: 1 },
-      { id: "w2", type: "kpi", title: "覆盖客群", colSpan: 1 },
-      { id: "w3", type: "table", title: "规则列表", colSpan: 2 },
-      { id: "w4", type: "bar", title: "上线前后对比", colSpan: 2 },
+      { id: "pv_st_b", type: "kpi", title: "策略命中数", colSpan: 1 },
+      { id: "pv_st_c", type: "kpi", title: "覆盖客群", colSpan: 1 },
+      { id: "pv_st_d", type: "bar", title: "上线前后对比", colSpan: 2 },
     ],
   },
   {
@@ -139,6 +169,31 @@ export const TEMPLATES: TemplatePreset[] = [
       { id: "pv_pa_b", type: "line", title: "周期趋势", colSpan: 2 },
       { id: "pv_pa_c", type: "table", title: "产品矩阵", colSpan: 2 },
       { id: "pv_pa_d", type: "bar", title: "产品渗透分析", colSpan: 2 },
+    ],
+  },
+  {
+    id: "post-evaluation",
+    name: "后评价",
+    pageTitle: "后评价",
+    description: "消费达标享好礼后评价：客户号 × 支付渠道 SUM 指标交叉分析",
+    dashboardTabs: ["消费达标享好礼-后评价"],
+    accent: "#059669",
+    widgets: [
+      {
+        id: "w_pe",
+        type: "table",
+        title: "后评价",
+        colSpan: 2,
+        replicaLayout: "selfServiceQuery",
+        libraryLabel: "后评价",
+        analysisMode: "postEvaluation",
+      },
+    ],
+    previewWidgets: [
+      { id: "pv_pe_a", type: "table", title: "消费达标享好礼", colSpan: 2 },
+      { id: "pv_pe_b", type: "bar", title: "渠道汇总", colSpan: 2 },
+      { id: "pv_pe_c", type: "kpi", title: "达标客户", colSpan: 1 },
+      { id: "pv_pe_d", type: "kpi", title: "合计交易额", colSpan: 1 },
     ],
   },
   {

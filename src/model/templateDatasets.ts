@@ -110,6 +110,25 @@ const DATASETS: TemplateDatasetDef[] = [
     ],
   },
   {
+    templateId: "post-evaluation",
+    datasetName: "后评价数据集",
+    dimensions: [{ key: "customer_id", label: "客户号", semantic: "string" }],
+    measures: [
+      { key: "tenpay", label: "SUM(财付通)", semantic: "number" },
+      { key: "alipay", label: "SUM(支付宝)", semantic: "number" },
+      { key: "douyin", label: "SUM(抖音)", semantic: "number" },
+      { key: "wangmeng", label: "SUM(网盟在线)", semantic: "number" },
+      { key: "qiandaibao", label: "SUM(钱袋宝)", semantic: "number" },
+      { key: "fufeitong", label: "SUM(付费通)", semantic: "number" },
+      { key: "chengfutong", label: "SUM(程付通)", semantic: "number" },
+    ],
+    kpiPreviewRows: [
+      { label: "客户数", value: "3,815" },
+      { label: "渠道指标", value: "7" },
+      { label: "报表", value: "消费达标享好礼-后评价" },
+    ],
+  },
+  {
     templateId: "iris-demo",
     datasetName: "Iris数据集",
     dimensions: [

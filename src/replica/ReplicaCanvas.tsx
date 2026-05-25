@@ -354,6 +354,7 @@ export function ReplicaCanvas({
                       pct={pct}
                       accent={cardAccentForIndex(i, activeDashTab)}
                       slotBindings={slotBindingsByWidget[w.id] ?? {}}
+                      dashTabLabel={dashTabLabel}
                     />
                   </div>
                 </div>

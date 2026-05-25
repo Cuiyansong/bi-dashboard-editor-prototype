@@ -1,4 +1,13 @@
 import { CUST_TIER_OPTIONS, SEVEN_COHORT_OPTIONS } from "../model/customerFilters";
+import {
+  ASSESSMENT_INDICATOR_TABS,
+  getAllAssessmentIndicatorFields,
+  getAssessmentIndicatorFieldsForTab,
+} from "./assessmentQueryConfig";
+import { getBenefitIndicatorsForTab } from "./benefitQueryConfig";
+import { getPostEvaluationIndicatorsForTab } from "./postEvaluationQueryConfig";
+
+export type AnalysisMode = "customer" | "product" | "assessment" | "benefit" | "postEvaluation";
 
 /** 产品分析：左侧维度分类 */
 export const PRODUCT_DIMENSION_GROUPS = [
@@ -78,6 +87,9 @@ export const INDICATOR_TABS = ["指标"] as const;
 export const LEVEL1_TABS = INDICATOR_TABS;
 export const LEVEL2_TABS = [YOY_TAB_LABEL, ...INDICATOR_TABS] as const;
 
+export const ASSESSMENT_LEVEL1_TABS = ASSESSMENT_INDICATOR_TABS;
+export const ASSESSMENT_LEVEL2_TABS = [YOY_TAB_LABEL, ...ASSESSMENT_INDICATOR_TABS] as const;
+
 export function flattenProductOptions(): string[] {
   const out: string[] = [];
   for (const g of PRODUCT_DIMENSION_GROUPS) {
@@ -86,19 +98,33 @@ export function flattenProductOptions(): string[] {
   return out;
 }
 
+export function getBaseIndicatorFields(
+  mode: AnalysisMode,
+  dashTabLabel?: string,
+): readonly string[] {
+  if (mode === "product") return PRODUCT_INDICATOR_FIELDS;
+  if (mode === "assessment") return getAllAssessmentIndicatorFields();
+  if (mode === "benefit") return getBenefitIndicatorsForTab(dashTabLabel ?? "");
+  if (mode === "postEvaluation") return getPostEvaluationIndicatorsForTab(dashTabLabel ?? "");
+  return CUSTOMER_INDICATOR_FIELDS;
+}
+
 export function getIndicatorFieldsForTab(
   tabLabel: string,
-  mode: "customer" | "product",
+  mode: AnalysisMode,
+  dashTabLabel?: string,
 ): readonly string[] {
   if (tabLabel === YOY_TAB_LABEL) return YOY_FIELDS;
-  return mode === "product" ? PRODUCT_INDICATOR_FIELDS : CUSTOMER_INDICATOR_FIELDS;
+  if (mode === "assessment") return getAssessmentIndicatorFieldsForTab(tabLabel);
+  return getBaseIndicatorFields(mode, dashTabLabel);
 }
 
 export function orderedSelectedFields(
   selected: Set<string>,
-  mode: "customer" | "product",
+  mode: AnalysisMode,
+  dashTabLabel?: string,
 ): string[] {
-  const base = mode === "product" ? PRODUCT_INDICATOR_FIELDS : CUSTOMER_INDICATOR_FIELDS;
+  const base = getBaseIndicatorFields(mode, dashTabLabel);
   return [
     ...base.filter((f) => selected.has(f)),
     ...YOY_FIELDS.filter((f) => selected.has(f)),

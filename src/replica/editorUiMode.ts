@@ -2,7 +2,7 @@
 export type EditorUiMode = "simple" | "complex";
 
 /** 进入编辑器时的默认界面模式 */
-export const DEFAULT_EDITOR_UI_MODE: EditorUiMode = "simple";
+export const DEFAULT_EDITOR_UI_MODE: EditorUiMode = "complex";
 
 export function isComplexEditorMode(mode: EditorUiMode): boolean {
   return mode === "complex";

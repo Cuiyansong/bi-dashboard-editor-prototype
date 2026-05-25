@@ -11,7 +11,7 @@ import { defaultFilterState } from "../model/templateFilters";
 import { getInitialTabWidgets } from "../model/templateTabWidgets";
 import { defaultPrimaryMeasureKey, getDatasetForTemplate, listRegisteredDatasets } from "../model/templateDatasets";
 import { ReplicaBiHeader } from "./ReplicaBiHeader";
-import { DEFAULT_EDITOR_UI_MODE, type EditorUiMode } from "./editorUiMode";
+import type { EditorUiMode } from "./editorUiMode";
 import { ReplicaCanvas } from "./ReplicaCanvas";
 import { FigmaAssetImage } from "./FigmaAssetImage";
 import { figmaAssets } from "./figmaAssets";
@@ -93,9 +93,10 @@ function initialEditorCanvasState(templateIndex: number) {
 export type EditorFrameProps = {
   initialTemplateIdx?: number;
   onBackToHome?: () => void;
+  backLabel?: string;
 };
 
-export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFrameProps) {
+export function EditorFrame({ initialTemplateIdx = 0, onBackToHome, backLabel }: EditorFrameProps) {
   const startIdx = Math.min(Math.max(0, initialTemplateIdx), TEMPLATES.length - 1);
   const _initCanvas = useMemo(() => initialEditorCanvasState(startIdx), [startIdx]);
   const [templateIdx, setTemplateIdx] = useState(startIdx);
@@ -118,14 +119,8 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
   const [leftRailPanel, setLeftRailPanel] = useState<LeftRailPanel>("templates");
   const [queryModalOpen, setQueryModalOpen] = useState(false);
   const [queryModalKind, setQueryModalKind] = useState<"simple" | "composite">("simple");
-  const [uiMode, setUiMode] = useState<EditorUiMode>(DEFAULT_EDITOR_UI_MODE);
+  const uiMode: EditorUiMode = "complex";
   const [autoUpdate, setAutoUpdate] = useState(true);
-
-  useEffect(() => {
-    if (uiMode === "simple" && rightTab !== "fields") {
-      setRightTab("fields");
-    }
-  }, [uiMode, rightTab]);
 
   /** 指针从组件库拖向画布时，画布区域高亮 */
   const [canvasPointerOver, setCanvasPointerOver] = useState(false);
@@ -149,7 +144,11 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
 
   /** 自助查询/产品分析模板使用全画布形态：隐藏左右栏、顶部工具条、全局筛选与图表自带工具栏 */
   const isFullCanvasTemplate =
-    preset.id === "self-service-query" || preset.id === "product-analysis";
+    preset.id === "self-service-query" ||
+    preset.id === "product-analysis" ||
+    preset.id === "report-kpi" ||
+    preset.id === "strategy" ||
+    preset.id === "post-evaluation";
 
   const selected = useMemo(() => canvasWidgets.find((w) => w.id === selectedId) ?? null, [canvasWidgets, selectedId]);
   const slotBindings = selectedId ? fieldBindingsMap[selectedId] ?? {} : {};
@@ -551,7 +550,7 @@ export function EditorFrame({ initialTemplateIdx = 0, onBackToHome }: EditorFram
       className="flex h-[918px] w-[1920px] shrink-0 flex-col overflow-hidden rounded-sm border border-figma-line bg-white shadow-md"
       data-figma-frame="2:4671"
     >
-      <ReplicaBiHeader uiMode={uiMode} onUiModeChange={setUiMode} onBackToHome={onBackToHome} />
+      <ReplicaBiHeader onBackToHome={onBackToHome} backLabel={backLabel} />
       {!isFullCanvasTemplate ? (
         <ReplicaToolbar activeRail={leftRailPanel} onRailChange={setLeftRailPanel} uiMode={uiMode} />
       ) : null}

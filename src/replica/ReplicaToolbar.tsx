@@ -19,7 +19,7 @@ export type ReplicaToolbarProps = {
   uiMode?: EditorUiMode;
 };
 
-export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "simple" }: ReplicaToolbarProps) {
+export function ReplicaToolbar({ activeRail, onRailChange, uiMode = "complex" }: ReplicaToolbarProps) {
   const showToolbarExtras = isComplexEditorMode(uiMode);
   const chips = [t.v2, t.v3, t.v4, t.v5, t.v6, t.v7, t.v8, t.v9, t.v10];
 

@@ -312,7 +312,7 @@ function ChartConfigColumn({
   tab,
   onTab,
   selected,
-  uiMode = "simple",
+  uiMode = "complex",
   slotBindings,
   pickedField,
   onConsumePickedField,

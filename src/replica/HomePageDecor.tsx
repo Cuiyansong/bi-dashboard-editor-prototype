@@ -18,16 +18,26 @@ export function HomeSubtleBackground() {
 
 type HomeHeroBannerProps = {
   titleId: string;
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  className?: string;
 };
 
 /** 顶部 Banner：渐变条 + 右侧裁切看板预览（尺寸受控） */
-export function HomeHeroBanner({ titleId }: HomeHeroBannerProps) {
+export function HomeHeroBanner({
+  titleId,
+  eyebrow = "BI 看板 · 银行业务分析",
+  title = "选择模板，快速搭建数据看板",
+  subtitle = "预置驾驶舱、通报考核、客户经营、策略编辑与客群分析场景；含报表查询、报表配置等企业级报表能力。",
+  className = "mx-10 mt-5",
+}: HomeHeroBannerProps) {
   const snapshotUuid = "35387b90-5209-4206-aa41-2927259ddb13";
 
   return (
     <section
       aria-labelledby={titleId}
-      className="relative z-10 mx-10 mt-5 shrink-0 overflow-hidden rounded-2xl border border-[#BFDBFE]/60 shadow-[0_12px_40px_rgba(30,64,175,0.12)]"
+      className={`relative z-10 shrink-0 overflow-hidden rounded-2xl border border-[#BFDBFE]/60 shadow-[0_12px_40px_rgba(30,64,175,0.12)] ${className}`}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-[#1E3A8A] via-[#1E40AF] to-[#2563EB]" />
       <div
@@ -44,17 +54,15 @@ export function HomeHeroBanner({ titleId }: HomeHeroBannerProps) {
       <div className="relative flex h-[148px] items-stretch">
         <div className="flex min-w-0 flex-1 flex-col justify-center px-8 py-5">
           <p className="font-['Inter',sans-serif] text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-200">
-            BI 看板 · 银行业务分析
+            {eyebrow}
           </p>
           <h1
             id={titleId}
             className="mt-1.5 text-balance font-['Inter',sans-serif] text-[28px] font-semibold leading-tight tracking-tight text-white"
           >
-            选择模板，快速搭建数据看板
+            {title}
           </h1>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-blue-100/90">
-            预置驾驶舱、通报考核、客户经营、策略编辑与客群分析场景，支持全局筛选与图表联动。
-          </p>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-blue-100/90">{subtitle}</p>
         </div>
 
         <div
