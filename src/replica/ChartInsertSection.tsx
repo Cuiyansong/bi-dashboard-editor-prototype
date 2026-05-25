@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type Ref } from "react";
 import type { WidgetType } from "../model/dashboardModel";
 import {
+  hasFilterForField,
+  type FieldFilterCondition,
+  type FilterSource,
+} from "../model/queryFieldFilters";
+import { ConfiguredFiltersBar } from "./ConfiguredFiltersBar";
+import { FilterableChip } from "./FilterableChip";
+import {
   type AnalysisMode,
   type DimensionSelections,
   type InsertedChart,
@@ -81,6 +88,54 @@ function previewCell(chartId: string, dim: string, indicator: string): string {
   }
   if (/笔数|数量/.test(indicator)) return String(50 + (s % 950));
   return ((s % 200) + 20).toFixed(1);
+}
+
+function InsertFieldChip({
+  label,
+  selected,
+  onToggle,
+  filterable,
+  fieldFilters,
+  onOpenFieldFilter,
+  source,
+}: {
+  label: string;
+  selected: boolean;
+  onToggle: () => void;
+  filterable?: boolean;
+  fieldFilters?: FieldFilterCondition[];
+  onOpenFieldFilter?: (fieldLabel: string, source: FilterSource) => void;
+  source: FilterSource;
+}) {
+  if (filterable && onOpenFieldFilter) {
+    return (
+      <FilterableChip
+        label={label}
+        selected={selected}
+        onToggle={onToggle}
+        chipVariant={source === "dimension" ? "dimension" : "measure"}
+        filterable
+        hasFilter={hasFilterForField(fieldFilters ?? [], label)}
+        onOpenFilter={() => onOpenFieldFilter(label, source)}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={selected}
+      onClick={onToggle}
+      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-[3px] text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E40AF]/35"
+      style={{
+        borderColor: selected ? TOKEN.primary : TOKEN.border,
+        background: selected ? TOKEN.primarySoft : TOKEN.card,
+        color: selected ? TOKEN.primary : TOKEN.text,
+      }}
+    >
+      <span>{label}</span>
+    </button>
+  );
 }
 
 function FieldChip({
@@ -225,6 +280,10 @@ export function ChartInsertPanel({
   defaultCollapsed = true,
   onCollapsedChange,
   sectionRef,
+  fieldFilters = [],
+  onRemoveFieldFilter,
+  onOpenFieldFilter,
+  filterable = false,
 }: {
   analysisMode: AnalysisMode;
   dashTabLabel?: string;
@@ -237,6 +296,10 @@ export function ChartInsertPanel({
   defaultCollapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
   sectionRef?: Ref<HTMLElement>;
+  fieldFilters?: FieldFilterCondition[];
+  onRemoveFieldFilter?: (id: string) => void;
+  onOpenFieldFilter?: (fieldLabel: string, source: FilterSource) => void;
+  filterable?: boolean;
 }) {
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
   const collapsed = collapsedProp ?? internalCollapsed;
@@ -348,7 +411,9 @@ export function ChartInsertPanel({
           <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: TOKEN.textDim }}>
             {insertedCount > 0
               ? `已插入 ${insertedCount} 个 · 点击展开继续添加`
-              : typeLabel
+              : fieldFilters.length > 0
+                ? `筛选 ${fieldFilters.length} 条 · 点击展开`
+                : typeLabel
                 ? `点击展开 · 当前 ${typeLabel}`
                 : "点击展开配置图表"}
           </span>
@@ -416,20 +481,16 @@ export function ChartInsertPanel({
                   {group.options.map((opt) => {
                     const active = selectedDimensions.has(opt);
                     return (
-                      <button
+                      <InsertFieldChip
                         key={opt}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => toggleDimension(opt, group.options)}
-                        className="inline-flex shrink-0 cursor-pointer rounded-md border px-2 py-[3px] text-[11px] transition-colors"
-                        style={{
-                          borderColor: active ? TOKEN.primary : TOKEN.border,
-                          background: active ? TOKEN.primary : TOKEN.card,
-                          color: active ? "#FFFFFF" : TOKEN.text,
-                        }}
-                      >
-                        {opt}
-                      </button>
+                        label={opt}
+                        selected={active}
+                        onToggle={() => toggleDimension(opt, group.options)}
+                        filterable={filterable}
+                        fieldFilters={fieldFilters}
+                        onOpenFieldFilter={onOpenFieldFilter}
+                        source="dimension"
+                      />
                     );
                   })}
                 </div>
@@ -451,15 +512,23 @@ export function ChartInsertPanel({
           </div>
           <div className="flex max-h-[100px] flex-wrap gap-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]">
             {indicatorOptions.map((ind) => (
-              <FieldChip
+              <InsertFieldChip
                 key={ind}
                 label={ind}
                 selected={selectedIndicators.has(ind)}
                 onToggle={() => toggleIndicator(ind)}
+                filterable={filterable}
+                fieldFilters={fieldFilters}
+                onOpenFieldFilter={onOpenFieldFilter}
+                source="measure"
               />
             ))}
           </div>
         </div>
+
+        {onRemoveFieldFilter ? (
+          <ConfiguredFiltersBar filters={fieldFilters} onRemove={onRemoveFieldFilter} />
+        ) : null}
 
         <div className="flex items-center justify-between gap-2 border-t pt-2" style={{ borderColor: TOKEN.border }}>
           <p className="text-[10px]" style={{ color: TOKEN.textDim }}>

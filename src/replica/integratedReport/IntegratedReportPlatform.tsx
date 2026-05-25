@@ -14,14 +14,15 @@ import { IntegratedReportHomePage } from "./IntegratedReportHomePage";
 import { IntegratedReportShell } from "./IntegratedReportShell";
 import { OrderReportQueryPage } from "./OrderReportQueryPage";
 import { ReportConfigSidebar } from "./ReportConfigSidebar";
-import { ReportQueryReplicaPage } from "./ReportQueryReplicaPage";
 import { ReportQuerySidebar } from "./ReportQuerySidebar";
 import { TemplateAnalysisPreviewPage } from "./TemplateAnalysisPreviewPage";
 import { TemplatePickerPanel } from "./TemplatePickerPanel";
-import { isPostEvaluationTemplate, isTemplateLinkedNode } from "./templateCatalogRouting";
+import { isTemplateLinkedNode } from "./templateCatalogRouting";
 
 export type IntegratedReportPlatformProps = {
   initialTopNav?: IntegratedTopNavId;
+  initialQueryReportId?: string;
+  onOpenQueryTemplate: (templateIdx: number) => void;
   onOpenTemplateEditor: (templateIdx: number, fromNav: IntegratedTopNavId) => void;
 };
 
@@ -50,10 +51,6 @@ function renderCatalogContent(
         ? `报表查询 / 业务分析报表 / ${tabLabel}`
         : `报表配置 / 模板仪表板 / ${tabLabel}`;
 
-    if (isPostEvaluationTemplate(node.templateId)) {
-      return <ReportQueryReplicaPage reportTitle={tabLabel} breadcrumb={breadcrumb} />;
-    }
-
     return (
       <TemplateAnalysisPreviewPage
         templateId={node.templateId}
@@ -71,10 +68,14 @@ function renderCatalogContent(
 
 export function IntegratedReportPlatform({
   initialTopNav = "home",
+  initialQueryReportId,
+  onOpenQueryTemplate,
   onOpenTemplateEditor,
 }: IntegratedReportPlatformProps) {
   const [topNav, setTopNav] = useState<IntegratedTopNavId>(initialTopNav);
-  const [querySelectedId, setQuerySelectedId] = useState(DEFAULT_QUERY_REPORT_ID);
+  const [querySelectedId, setQuerySelectedId] = useState(
+    initialQueryReportId ?? DEFAULT_QUERY_REPORT_ID,
+  );
   const [configSelectedId, setConfigSelectedId] = useState(DEFAULT_CONFIG_DASHBOARD_ID);
   const [configMainView, setConfigMainView] = useState<ConfigMainView>("dashboard");
   const [configEditing, setConfigEditing] = useState(false);
@@ -84,6 +85,13 @@ export function IntegratedReportPlatform({
   useEffect(() => {
     setTopNav(initialTopNav);
   }, [initialTopNav]);
+
+  useEffect(() => {
+    if (initialQueryReportId) {
+      setTopNav("reportQuery");
+      setQuerySelectedId(initialQueryReportId);
+    }
+  }, [initialQueryReportId]);
 
   const queryNode = useMemo(
     () => findReportTreeNode(querySelectedId, REPORT_QUERY_TREE),
@@ -146,7 +154,7 @@ export function IntegratedReportPlatform({
   const mainContent = () => {
     if (topNav === "home") {
       return (
-        <IntegratedReportHomePage onSelectTemplate={onOpenTemplateEditor} />
+        <IntegratedReportHomePage onOpenQueryTemplate={onOpenQueryTemplate} />
       );
     }
     if (topNav === "reportQuery") {

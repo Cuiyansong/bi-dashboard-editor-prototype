@@ -19,7 +19,7 @@ export function TemplateAnalysisPreviewPage({
   onEditingChange,
 }: TemplateAnalysisPreviewPageProps) {
   const widget = buildPreviewWidget(templateId, dashTabLabel);
-  const displayMode = context === "query" ? "view" : editing ? "configure" : "view";
+  const displayMode = context === "query" ? "configure" : editing ? "configure" : "view";
   const showEditToggle = context === "config" && onEditingChange != null;
 
   return (

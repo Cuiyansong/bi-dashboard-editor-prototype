@@ -119,6 +119,14 @@ export function getIndicatorFieldsForTab(
   return getBaseIndicatorFields(mode, dashTabLabel);
 }
 
+export function getSampleColumnIndicators(
+  mode: AnalysisMode,
+  dashTabLabel?: string,
+  limit = 8,
+): string[] {
+  return getBaseIndicatorFields(mode, dashTabLabel).slice(0, limit);
+}
+
 export function orderedSelectedFields(
   selected: Set<string>,
   mode: AnalysisMode,

@@ -1,15 +1,15 @@
 import { TEMPLATES } from "../../model/dashboardModel";
 import { MARKET_TEMPLATES, TemplateMarketCard } from "../TemplateMarketCard";
-import type { IntegratedTopNavId } from "./integratedReportConfig";
 import { PlatformHeroBanner } from "./PlatformHeroBanner";
+import { PLATFORM_TEMPLATE_COVER_IMAGES } from "./platformHomeAssets";
 
 const PLATFORM_HOME_TITLE_ID = "integrated-platform-home-title";
 
 export type IntegratedReportHomePageProps = {
-  onSelectTemplate: (templateIndex: number, fromNav: IntegratedTopNavId) => void;
+  onOpenQueryTemplate: (templateIndex: number) => void;
 };
 
-export function IntegratedReportHomePage({ onSelectTemplate }: IntegratedReportHomePageProps) {
+export function IntegratedReportHomePage({ onOpenQueryTemplate }: IntegratedReportHomePageProps) {
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#F8FAFC]">
       <PlatformHeroBanner titleId={PLATFORM_HOME_TITLE_ID} />
@@ -39,8 +39,10 @@ export function IntegratedReportHomePage({ onSelectTemplate }: IntegratedReportH
                   key={preset.id}
                   preset={preset}
                   descriptionId={`platform-home-desc-${preset.id}`}
-                  onSelect={() => onSelectTemplate(idx, "home")}
+                  onSelect={() => onOpenQueryTemplate(idx)}
                   compact
+                  coverImageUrl={PLATFORM_TEMPLATE_COVER_IMAGES[preset.id]}
+                  coverOnly
                 />
               );
             })}

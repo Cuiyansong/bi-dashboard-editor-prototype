@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { EditorFrame } from "./replica/EditorFrame";
-import type { IntegratedTopNavId } from "./replica/integratedReport/integratedReportConfig";
+import { TEMPLATES } from "./model/dashboardModel";
+import {
+  getDefaultQueryReportIdForTemplate,
+  type IntegratedTopNavId,
+} from "./replica/integratedReport/integratedReportConfig";
 import { IntegratedReportPlatform } from "./replica/integratedReport/IntegratedReportPlatform";
 import { ViewportScaledFrame } from "./replica/ViewportScaledFrame";
 
@@ -12,6 +16,7 @@ export function App() {
   const [view, setView] = useState<AppView>("integratedReport");
   const [templateIdx, setTemplateIdx] = useState(0);
   const [integratedInitialNav, setIntegratedInitialNav] = useState<IntegratedTopNavId>("home");
+  const [initialQueryReportId, setInitialQueryReportId] = useState<string | undefined>();
   const [returnAfterEditor, setReturnAfterEditor] = useState<NavReturn>(null);
 
   const handleEditorBack = () => {
@@ -44,6 +49,14 @@ export function App() {
       {view === "integratedReport" ? (
         <IntegratedReportPlatform
           initialTopNav={integratedInitialNav}
+          initialQueryReportId={initialQueryReportId}
+          onOpenQueryTemplate={(idx) => {
+            const template = TEMPLATES[idx];
+            if (!template) return;
+            setIntegratedInitialNav("reportQuery");
+            setInitialQueryReportId(getDefaultQueryReportIdForTemplate(template.id));
+            setView("integratedReport");
+          }}
           onOpenTemplateEditor={(idx, fromNav) => {
             setReturnAfterEditor({ view: "integratedReport", nav: fromNav });
             setTemplateIdx(idx);

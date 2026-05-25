@@ -8,11 +8,11 @@ export const PLATFORM_HERO_IMAGE_FALLBACK =
 export const PLATFORM_PRIMARY = "#213c7f";
 export const PLATFORM_PRIMARY_DARK = "#1a3066";
 
-/** 模板 id → 模块示意顶图（用于卡片预览区背景，可选） */
+/** 模板 id → 平台首页卡片封面（本地科技感示意，与 #213c7f 品牌一致） */
 export const PLATFORM_TEMPLATE_COVER_IMAGES: Partial<Record<string, string>> = {
-  "report-kpi": "https://ai-public.mastergo.com/ai/img_res/224de50020426cf3f7bb4a1188f2b630.jpg",
-  strategy: "https://ai-public.mastergo.com/ai/img_res/0fab16d4fc572c359506f8f869670a16.jpg",
-  "self-service-query": "https://ai-public.mastergo.com/ai/img_res/32533a4839a9363052766bb0128c42c7.jpg",
-  "product-analysis": "https://ai-public.mastergo.com/ai/img_res/420ffe8eefcfd440200821e12c7f8b1f.jpg",
-  "post-evaluation": "https://ai-public.mastergo.com/ai/img_res/6ac626092887eb00b274674bb90161b5.jpg",
+  "report-kpi": "/templates/report-kpi.png",
+  "product-analysis": "/templates/product-analysis.png",
+  "self-service-query": "/templates/self-service-query.png",
+  strategy: "/templates/strategy.png",
+  "post-evaluation": "/templates/post-evaluation.png",
 };

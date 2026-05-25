@@ -21,12 +21,22 @@ import {
 import { ChartInsertPanel, InsertedChartsGallery } from "./ChartInsertSection";
 import type { InsertedChart } from "./chartInsertConfig";
 import { initGenericDimensionSelections } from "./chartInsertConfig";
+import { ConfiguredFiltersBar } from "./ConfiguredFiltersBar";
+import { FieldFilterConfigModal, type FieldFilterModalTarget } from "./FieldFilterConfigModal";
+import { FilterableChip } from "./FilterableChip";
+import { RowColumnSidePanel, ROW_COLUMN_PANEL_HEIGHT_CLASS } from "./RowColumnSidePanel";
+import {
+  hasFilterForField,
+  type FieldFilterCondition,
+  type FilterSource,
+} from "../model/queryFieldFilters";
 import {
   CUSTOMER_DIMENSION_GROUPS,
   CUSTOMER_INDICATOR_FIELDS,
   flattenProductOptions,
   getBaseIndicatorFields,
   getIndicatorFieldsForTab,
+  getSampleColumnIndicators,
   ASSESSMENT_LEVEL1_TABS,
   ASSESSMENT_LEVEL2_TABS,
   LEVEL1_TABS,
@@ -349,11 +359,19 @@ function DimensionChipGroup({
   options,
   selected,
   onChange,
+  filterable = false,
+  fieldFilters = [] as FieldFilterCondition[],
+  onOpenFilter,
+  getFilterLabel,
 }: {
   label: string;
   options: readonly string[];
   selected: Set<string>;
   onChange: (next: Set<string>) => void;
+  filterable?: boolean;
+  fieldFilters?: FieldFilterCondition[];
+  onOpenFilter?: (fieldLabel: string) => void;
+  getFilterLabel?: (option: string) => string;
 }) {
   const toggle = (opt: string) => {
     const next = new Set(selected);
@@ -399,6 +417,21 @@ function DimensionChipGroup({
       <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
         {options.map((opt) => {
           const active = selected.has(opt);
+          const filterLabel = getFilterLabel ? getFilterLabel(opt) : `${label} · ${opt}`;
+          if (filterable && onOpenFilter) {
+            return (
+              <FilterableChip
+                key={opt}
+                label={opt}
+                selected={active}
+                onToggle={() => toggle(opt)}
+                chipVariant="dimension"
+                filterable
+                hasFilter={hasFilterForField(fieldFilters, filterLabel)}
+                onOpenFilter={() => onOpenFilter(filterLabel)}
+              />
+            );
+          }
           return (
             <button
               key={opt}
@@ -425,9 +458,11 @@ function DimensionChipGroup({
 function ProductDimensionPanel({
   selected,
   onChange,
+  embedded = false,
 }: {
   selected: Set<string>;
   onChange: (next: Set<string>) => void;
+  embedded?: boolean;
 }) {
   const allOptions = useMemo(() => flattenProductOptions(), []);
 
@@ -443,24 +478,8 @@ function ProductDimensionPanel({
     }
   };
 
-  return (
-    <section
-      className="flex h-full min-w-0 flex-col rounded-lg border"
-      style={{ borderColor: TOKEN.border, background: TOKEN.card }}
-    >
-      <div
-        className="flex items-center gap-2 rounded-t-lg border-b px-3 py-2"
-        style={{ borderColor: TOKEN.border, background: TOKEN.surfaceAlt }}
-      >
-        <StepBadge n={0} />
-        <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
-          产品选择
-        </h3>
-        <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
-          可多选
-        </span>
-      </div>
-      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
+  const body = (
+    <div className={`flex flex-col gap-3 ${embedded ? "" : "overflow-y-auto p-3 [scrollbar-width:thin]"}`}>
         {PRODUCT_DIMENSION_GROUPS.map((group, gi) => (
           <div key={group.label}>
             {gi > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
@@ -532,11 +551,39 @@ function ProductDimensionPanel({
           <TinyButton onClick={() => onChange(new Set(allOptions))}>全选</TinyButton>
           <TinyButton onClick={() => onChange(new Set([allOptions[0]!]))}>重置</TinyButton>
         </div>
+    </div>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <section
+      className="flex h-full min-w-0 flex-col rounded-lg border"
+      style={{ borderColor: TOKEN.border, background: TOKEN.card }}
+    >
+      <div
+        className="flex items-center gap-2 rounded-t-lg border-b px-3 py-2"
+        style={{ borderColor: TOKEN.border, background: TOKEN.surfaceAlt }}
+      >
+        <StepBadge n={0} />
+        <h3 className="text-[13px] font-semibold" style={{ color: TOKEN.text }}>
+          产品选择
+        </h3>
+        <span className="ml-auto text-[10px]" style={{ color: TOKEN.textDim }}>
+          可多选
+        </span>
       </div>
+      {body}
     </section>
   );
 }
 
+
+type DimensionFilterProps = {
+  filterable?: boolean;
+  fieldFilters?: FieldFilterCondition[];
+  onOpenFilter?: (fieldLabel: string) => void;
+};
 
 function OrgDimensionPanel({
   provinces,
@@ -545,6 +592,10 @@ function OrgDimensionPanel({
   setBranches,
   outlets,
   setOutlets,
+  embedded = false,
+  filterable = false,
+  fieldFilters = [],
+  onOpenFilter,
 }: {
   provinces: Set<string>;
   setProvinces: (s: Set<string>) => void;
@@ -552,7 +603,8 @@ function OrgDimensionPanel({
   setBranches: (s: Set<string>) => void;
   outlets: Set<string>;
   setOutlets: (s: Set<string>) => void;
-}) {
+  embedded?: boolean;
+} & DimensionFilterProps) {
   const setters: Record<string, (s: Set<string>) => void> = {
     province: setProvinces,
     branch: setBranches,
@@ -563,6 +615,27 @@ function OrgDimensionPanel({
     branch: branches,
     outlet: outlets,
   };
+
+  const body = (
+    <div className={`flex flex-col gap-3 ${embedded ? "" : "overflow-y-auto p-3 [scrollbar-width:thin]"}`}>
+      {ASSESSMENT_DIMENSION_GROUPS.map((g, i) => (
+        <div key={g.key}>
+          {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
+          <DimensionChipGroup
+            label={g.label}
+            options={g.options}
+            selected={selections[g.key]!}
+            onChange={setters[g.key]!}
+            filterable={filterable}
+            fieldFilters={fieldFilters}
+            onOpenFilter={onOpenFilter}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (embedded) return body;
 
   return (
     <section
@@ -581,19 +654,7 @@ function OrgDimensionPanel({
           可多选
         </span>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
-        {ASSESSMENT_DIMENSION_GROUPS.map((g, i) => (
-          <div key={g.key}>
-            {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
-            <DimensionChipGroup
-              label={g.label}
-              options={g.options}
-              selected={selections[g.key]!}
-              onChange={setters[g.key]!}
-            />
-          </div>
-        ))}
-      </div>
+      {body}
     </section>
   );
 }
@@ -603,15 +664,41 @@ function GenericDimensionPanel({
   groups,
   selections,
   onChange,
+  embedded = false,
+  filterable = false,
+  fieldFilters = [],
+  onOpenFilter,
 }: {
   panelTitle: string;
   groups: readonly BenefitDimensionGroup[];
   selections: Record<string, Set<string>>;
   onChange: (key: string, next: Set<string>) => void;
-}) {
+  embedded?: boolean;
+} & DimensionFilterProps) {
   const setters = Object.fromEntries(
     groups.map((g) => [g.key, (s: Set<string>) => onChange(g.key, s)]),
   ) as Record<string, (s: Set<string>) => void>;
+
+  const body = (
+    <div className={`flex flex-col gap-3 ${embedded ? "" : "overflow-y-auto p-3 [scrollbar-width:thin]"}`}>
+      {groups.map((g, i) => (
+        <div key={g.key}>
+          {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
+          <DimensionChipGroup
+            label={g.label}
+            options={g.options}
+            selected={selections[g.key]!}
+            onChange={setters[g.key]!}
+            filterable={filterable}
+            fieldFilters={fieldFilters}
+            onOpenFilter={onOpenFilter}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (embedded) return body;
 
   return (
     <section
@@ -630,19 +717,7 @@ function GenericDimensionPanel({
           可多选
         </span>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
-        {groups.map((g, i) => (
-          <div key={g.key}>
-            {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
-            <DimensionChipGroup
-              label={g.label}
-              options={g.options}
-              selected={selections[g.key]!}
-              onChange={setters[g.key]!}
-            />
-          </div>
-        ))}
-      </div>
+      {body}
     </section>
   );
 }
@@ -654,6 +729,10 @@ function CustomerDimensionPanel({
   setCohorts,
   scenarios,
   setScenarios,
+  embedded = false,
+  filterable = false,
+  fieldFilters = [],
+  onOpenFilter,
 }: {
   tiers: Set<string>;
   setTiers: (s: Set<string>) => void;
@@ -661,7 +740,8 @@ function CustomerDimensionPanel({
   setCohorts: (s: Set<string>) => void;
   scenarios: Set<string>;
   setScenarios: (s: Set<string>) => void;
-}) {
+  embedded?: boolean;
+} & DimensionFilterProps) {
   const setters: Record<string, (s: Set<string>) => void> = {
     tier: setTiers,
     cohort: setCohorts,
@@ -672,6 +752,27 @@ function CustomerDimensionPanel({
     cohort: cohorts,
     scenario: scenarios,
   };
+
+  const body = (
+    <div className={`flex flex-col gap-3 ${embedded ? "" : "overflow-y-auto p-3 [scrollbar-width:thin]"}`}>
+      {CUSTOMER_DIMENSION_GROUPS.map((g, i) => (
+        <div key={g.key}>
+          {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
+          <DimensionChipGroup
+            label={g.label}
+            options={g.options}
+            selected={selections[g.key]!}
+            onChange={setters[g.key]!}
+            filterable={filterable}
+            fieldFilters={fieldFilters}
+            onOpenFilter={onOpenFilter}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (embedded) return body;
 
   return (
     <section
@@ -690,19 +791,7 @@ function CustomerDimensionPanel({
           可多选
         </span>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto p-3 [scrollbar-width:thin]">
-        {CUSTOMER_DIMENSION_GROUPS.map((g, i) => (
-          <div key={g.key}>
-            {i > 0 ? <div className="mb-3 h-px" style={{ background: TOKEN.border }} /> : null}
-            <DimensionChipGroup
-              label={g.label}
-              options={g.options}
-              selected={selections[g.key]!}
-              onChange={setters[g.key]!}
-            />
-          </div>
-        ))}
-      </div>
+      {body}
     </section>
   );
 }
@@ -711,11 +800,30 @@ function FieldChip({
   label,
   selected,
   onToggle,
+  filterable = false,
+  hasFilter = false,
+  onOpenFilter,
 }: {
   label: string;
   selected: boolean;
   onToggle: () => void;
+  filterable?: boolean;
+  hasFilter?: boolean;
+  onOpenFilter?: () => void;
 }) {
+  if (filterable && onOpenFilter) {
+    return (
+      <FilterableChip
+        label={label}
+        selected={selected}
+        onToggle={onToggle}
+        chipVariant="measure"
+        filterable
+        hasFilter={hasFilter}
+        onOpenFilter={onOpenFilter}
+      />
+    );
+  }
   return (
     <button
       type="button"
@@ -754,6 +862,9 @@ function IndicatorPanel({
   selected,
   onChange,
   defaultCollapsed = false,
+  filterable = false,
+  fieldFilters = [] as FieldFilterCondition[],
+  onOpenFilter,
 }: {
   step: number;
   title: string;
@@ -763,6 +874,9 @@ function IndicatorPanel({
   selected: Set<string>;
   onChange: (next: Set<string>) => void;
   defaultCollapsed?: boolean;
+  filterable?: boolean;
+  fieldFilters?: FieldFilterCondition[];
+  onOpenFilter?: (fieldLabel: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [activeTab, setActiveTab] = useState(0);
@@ -955,6 +1069,9 @@ function IndicatorPanel({
                             label={label}
                             selected={selected.has(label)}
                             onToggle={() => toggleField(label)}
+                            filterable={filterable}
+                            hasFilter={hasFilterForField(fieldFilters, label)}
+                            onOpenFilter={onOpenFilter ? () => onOpenFilter(label) : undefined}
                           />
                         ))}
                       </div>
@@ -977,6 +1094,9 @@ function IndicatorPanel({
                   label={label}
                   selected={selected.has(label)}
                   onToggle={() => toggleField(label)}
+                  filterable={filterable}
+                  hasFilter={hasFilterForField(fieldFilters, label)}
+                  onOpenFilter={onOpenFilter ? () => onOpenFilter(label) : undefined}
                 />
               ))
             )}
@@ -1494,6 +1614,41 @@ export function SelfServiceQueryBoardCard({
   const [insertedCharts, setInsertedCharts] = useState<InsertedChart[]>([]);
   const [insertPanelCollapsed, setInsertPanelCollapsed] = useState(true);
   const insertPanelRef = useRef<HTMLElement>(null);
+  const sampleColumnOptions = useMemo(
+    () => getSampleColumnIndicators(analysisMode, dashTabLabel),
+    [analysisMode, dashTabLabel],
+  );
+  const [columnFields, setColumnFields] = useState<Set<string>>(
+    () => new Set(getSampleColumnIndicators(analysisMode, dashTabLabel)),
+  );
+  const [fieldFilters, setFieldFilters] = useState<FieldFilterCondition[]>([]);
+  const [filterModalTarget, setFilterModalTarget] = useState<FieldFilterModalTarget | null>(null);
+
+  const chipFilterable = !isViewMode;
+
+  const openFieldFilter = useCallback(
+    (fieldLabel: string, source: FilterSource) => {
+      const existing = fieldFilters.find((f) => f.fieldLabel === fieldLabel);
+      setFilterModalTarget({ fieldLabel, source, existing });
+    },
+    [fieldFilters],
+  );
+
+  const confirmFieldFilter = useCallback((condition: FieldFilterCondition) => {
+    setFieldFilters((prev) => {
+      const idx = prev.findIndex((f) => f.fieldLabel === condition.fieldLabel);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = condition;
+        return next;
+      }
+      return [...prev, condition];
+    });
+  }, []);
+
+  const removeFieldFilter = useCallback((id: string) => {
+    setFieldFilters((prev) => prev.filter((f) => f.id !== id));
+  }, []);
 
   const openInsertPanel = useCallback(() => {
     setInsertPanelCollapsed(false);
@@ -1507,6 +1662,8 @@ export function SelfServiceQueryBoardCard({
     setL1Fields(new Set(baseFields));
     setL2Fields(new Set<string>([...baseFields, ...YOY_FIELDS]));
     setInsertedCharts([]);
+    setColumnFields(new Set(getSampleColumnIndicators(analysisMode, dashTabLabel)));
+    setFieldFilters([]);
     if (isAssessmentMode) {
       setProvinces(new Set(ORG_PROVINCE_OPTIONS));
       setBranches(new Set(ORG_BRANCH_OPTIONS));
@@ -1632,6 +1789,11 @@ export function SelfServiceQueryBoardCard({
           ? "客群选择"
           : "产品选择";
 
+  const rowSummary = useMemo(
+    () => dimensionChips.map((c) => `${c.label} ${c.value}`).join(" · "),
+    [dimensionChips],
+  );
+
   return (
     <div
       className="flex flex-col gap-3 p-4 font-['Inter',sans-serif]"
@@ -1685,36 +1847,63 @@ export function SelfServiceQueryBoardCard({
         className="grid items-stretch gap-3"
         style={{ gridTemplateColumns: "minmax(260px, 280px) minmax(0, 1fr)" }}
       >
-        {isProductMode ? (
-          <ProductDimensionPanel selected={products} onChange={setProducts} />
-        ) : isPostEvaluationMode ? (
-          <CustomerIdExcelUploadPanel value={customerIdUpload} onChange={setCustomerIdUpload} />
-        ) : isAssessmentMode ? (
-          <OrgDimensionPanel
-            provinces={provinces}
-            setProvinces={setProvinces}
-            branches={branches}
-            setBranches={setBranches}
-            outlets={outlets}
-            setOutlets={setOutlets}
-          />
-        ) : isBenefitMode ? (
-          <GenericDimensionPanel
-            panelTitle={benefitPanelTitle}
-            groups={benefitDimGroups}
-            selections={genericDims}
-            onChange={(key, next) => setGenericDims((prev) => ({ ...prev, [key]: next }))}
-          />
-        ) : (
-          <CustomerDimensionPanel
-            tiers={tiers}
-            setTiers={setTiers}
-            cohorts={cohorts}
-            setCohorts={setCohorts}
-            scenarios={scenarios}
-            setScenarios={setScenarios}
-          />
-        )}
+        <div className={`sticky top-0 self-start ${ROW_COLUMN_PANEL_HEIGHT_CLASS}`}>
+          <RowColumnSidePanel
+          rowSummary={rowSummary}
+          columnOptions={sampleColumnOptions}
+          columnSelected={columnFields}
+          onColumnChange={setColumnFields}
+          filterable={chipFilterable}
+          fieldFilters={fieldFilters}
+          onOpenColumnFilter={(label) => openFieldFilter(label, "column")}
+          rowContent={
+            isProductMode ? (
+              <ProductDimensionPanel embedded selected={products} onChange={setProducts} />
+            ) : isPostEvaluationMode ? (
+              <div className="[&_section]:border-0 [&_section]:shadow-none">
+                <CustomerIdExcelUploadPanel value={customerIdUpload} onChange={setCustomerIdUpload} />
+              </div>
+            ) : isAssessmentMode ? (
+              <OrgDimensionPanel
+                embedded
+                provinces={provinces}
+                setProvinces={setProvinces}
+                branches={branches}
+                setBranches={setBranches}
+                outlets={outlets}
+                setOutlets={setOutlets}
+                filterable={chipFilterable}
+                fieldFilters={fieldFilters}
+                onOpenFilter={(label) => openFieldFilter(label, "dimension")}
+              />
+            ) : isBenefitMode ? (
+              <GenericDimensionPanel
+                embedded
+                panelTitle={benefitPanelTitle}
+                groups={benefitDimGroups}
+                selections={genericDims}
+                onChange={(key, next) => setGenericDims((prev) => ({ ...prev, [key]: next }))}
+                filterable={chipFilterable}
+                fieldFilters={fieldFilters}
+                onOpenFilter={(label) => openFieldFilter(label, "dimension")}
+              />
+            ) : (
+              <CustomerDimensionPanel
+                embedded
+                tiers={tiers}
+                setTiers={setTiers}
+                cohorts={cohorts}
+                setCohorts={setCohorts}
+                scenarios={scenarios}
+                setScenarios={setScenarios}
+                filterable={chipFilterable}
+                fieldFilters={fieldFilters}
+                onOpenFilter={(label) => openFieldFilter(label, "dimension")}
+              />
+            )
+          }
+        />
+        </div>
         <div className="flex min-w-0 flex-col gap-3">
           <IndicatorPanel
             step={1}
@@ -1724,6 +1913,9 @@ export function SelfServiceQueryBoardCard({
             dashTabLabel={dashTabLabel}
             selected={l1Fields}
             onChange={setL1Fields}
+            filterable={chipFilterable}
+            fieldFilters={fieldFilters}
+            onOpenFilter={(label) => openFieldFilter(label, "measure")}
           />
           <IndicatorPanel
             step={2}
@@ -1734,7 +1926,11 @@ export function SelfServiceQueryBoardCard({
             selected={l2Fields}
             onChange={setL2Fields}
             defaultCollapsed
+            filterable={chipFilterable}
+            fieldFilters={fieldFilters}
+            onOpenFilter={(label) => openFieldFilter(label, "measure")}
           />
+          <ConfiguredFiltersBar filters={fieldFilters} onRemove={removeFieldFilter} />
           <ResultPivotTable
             analysisMode={analysisMode}
             dashTabLabel={dashTabLabel}
@@ -1768,10 +1964,21 @@ export function SelfServiceQueryBoardCard({
             collapsed={insertPanelCollapsed}
             onCollapsedChange={setInsertPanelCollapsed}
             sectionRef={insertPanelRef}
+            fieldFilters={fieldFilters}
+            onRemoveFieldFilter={removeFieldFilter}
+            onOpenFieldFilter={openFieldFilter}
+            filterable={chipFilterable}
           />
         </div>
       </div>
       )}
+
+      <FieldFilterConfigModal
+        open={filterModalTarget != null}
+        target={filterModalTarget}
+        onClose={() => setFilterModalTarget(null)}
+        onConfirm={confirmFieldFilter}
+      />
     </div>
   );
 }

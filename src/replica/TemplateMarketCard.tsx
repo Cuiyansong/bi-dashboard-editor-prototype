@@ -10,6 +10,8 @@ export type TemplateMarketCardProps = {
   fillHeight?: boolean;
   /** 缩略图区背景示意（参考页模块顶图） */
   coverImageUrl?: string;
+  /** 仅用封面图，不渲染微缩看板栅格 */
+  coverOnly?: boolean;
 };
 
 export function TemplateMarketCard({
@@ -19,7 +21,16 @@ export function TemplateMarketCard({
   compact = false,
   fillHeight = false,
   coverImageUrl,
+  coverOnly = false,
 }: TemplateMarketCardProps) {
+  const previewFrameClass = fillHeight
+    ? "min-h-0 flex-1 p-2"
+    : compact && coverOnly
+      ? "min-h-[168px] aspect-[16/10] p-2"
+      : compact
+        ? "min-h-[100px] p-2"
+        : "min-h-[120px] p-2";
+
   return (
     <div
       onClick={onSelect}
@@ -54,25 +65,23 @@ export function TemplateMarketCard({
 
       <div className={`flex min-h-0 flex-1 flex-col ${compact ? "p-2.5" : "p-3"}`}>
         <div
-          className={`relative flex overflow-hidden rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] ${
-            fillHeight
-              ? "min-h-0 flex-1 p-2"
-              : compact
-                ? "min-h-[100px] p-2"
-                : "min-h-[120px] p-2"
-          }`}
+          className={`relative flex w-full overflow-hidden rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] ${previewFrameClass}`}
         >
           {coverImageUrl ? (
             <img
               src={coverImageUrl}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover opacity-35"
+              className={`absolute inset-0 h-full w-full object-cover ${
+                coverOnly ? "" : "opacity-35"
+              }`}
               aria-hidden
             />
           ) : null}
-          <div className="relative flex min-h-0 w-full flex-1">
-            <TemplateMarketThumbnail preset={preset} size="hero" />
-          </div>
+          {coverOnly && coverImageUrl ? null : (
+            <div className="relative flex min-h-0 w-full flex-1">
+              <TemplateMarketThumbnail preset={preset} size="hero" />
+            </div>
+          )}
         </div>
         <p
           id={descriptionId}

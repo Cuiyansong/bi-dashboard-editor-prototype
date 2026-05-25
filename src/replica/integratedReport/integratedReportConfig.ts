@@ -50,6 +50,11 @@ function buildQueryReportId(templateId: string, tabIndex: number): string {
   return `report-${templateId}-${tabIndex}`;
 }
 
+/** 首页业务模板卡片 → 报表查询默认选中的首个报表叶子 id */
+export function getDefaultQueryReportIdForTemplate(templateId: string): string {
+  return buildQueryReportId(templateId, 0);
+}
+
 function buildBusinessQueryTree(): ReportTreeNode[] {
   return MARKET_TEMPLATE_IDS.map((templateId) => {
     const t = templateById(templateId);
